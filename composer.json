@@ -1,0 +1,22 @@
+{
+  "name": "rabbit/db-clickhouse",
+  "description": "rabbit db-clickhouse.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "albert",
+      "email": "63851587@qq.com"
+    }
+  ],
+  "require": {
+    "rabbit/framework": "dev-master",
+    "rabbit/db": "dev-master",
+    "rabbit/httpclient": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "rabbit\\db\\clickhouse\\": "src/"
+    }
+  }
+}
