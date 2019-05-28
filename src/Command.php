@@ -140,7 +140,7 @@ class Command extends BaseCommand
     }
 
 
-    public function execute($prepare = false)
+    public function execute()
     {
         $rawSql = $this->getRawSql();
         $response = $this->db->getTransport()->post($this->getBaseUrl(), [
@@ -149,10 +149,7 @@ class Command extends BaseCommand
 
         $this->checkResponseStatus($response);
 
-        if ($prepare) {
-            return $this->parseResponse($response);
-        }
-        return $response;
+        return $this->parseResponse($response);
     }
 
 
@@ -202,7 +199,7 @@ class Command extends BaseCommand
         }
         $sql = '';
         foreach (explode('?', $this->getSql()) as $i => $part) {
-            $sql .= (isset($params[$i]) ? $params[$i] : '') . $part;
+            $sql .= $part . (isset($params[$i]) ? $params[$i] : '');
         }
         return $sql;
     }

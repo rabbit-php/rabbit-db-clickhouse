@@ -2,7 +2,6 @@
 
 namespace rabbit\db\clickhouse;
 
-use rabbit\activerecord\ActiveRecord;
 use rabbit\db\Exception;
 use rabbit\helper\ArrayHelper;
 
@@ -32,7 +31,7 @@ class CreateExt
                     $result[] = $res;
                 }
             } else {
-                $result = $model::getDb()->saveSeveral($model, $body);
+                $result = $model::getDb()->insertSeveral($model, $body);
             }
         } else {
             $result = self::createSeveral($model, $body);

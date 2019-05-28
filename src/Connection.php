@@ -5,6 +5,9 @@ namespace rabbit\db\clickhouse;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
+use rabbit\db\Exception;
+use rabbit\db\Expression;
+use rabbit\helper\ArrayHelper;
 use rabbit\httpclient\Client;
 
 /**
@@ -244,5 +247,220 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public function getQueryBuilder()
     {
         return $this->getSchema()->getQueryBuilder();
+    }
+
+    /**
+     * @param ActiveRecord $model
+     * @param array $array_columns
+     * @return int
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     * @throws \rabbit\db\Exception
+     */
+    public function insertSeveral(ActiveRecord $model, array $array_columns): int
+    {
+        $sql = '';
+        $params = array();
+        $i = 0;
+        if (ArrayHelper::isAssociative($array_columns)) {
+            $array_columns = [$array_columns];
+        }
+        $keys = $model::primaryKey();
+        if ($keys && !is_array($keys)) {
+            $keys = [$keys];
+        }
+        foreach ($array_columns as $item) {
+            $table = clone $model;
+            //关联模型
+            if (isset($table->realation)) {
+                foreach ($table->realation as $key => $val) {
+                    if (isset($item[$key])) {
+                        $child = $table->getRelation($key)->modelClass;
+                        $child_model = new $child();
+                        if ($item[$key]) {
+                            if (!isset($item[$key][0])) {
+                                $item[$key] = [$item[$key]];
+                            }
+                            foreach ($val as $c_attr => $p_attr) {
+                                foreach ($item[$key] as $index => $params) {
+                                    $item[$key][$index][$c_attr] = $table->{$p_attr};
+                                }
+                            }
+                            if ($this->updateSeveral($child_model, $item[$key]) === false) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            $names = array();
+            $placeholders = array();
+            $table->load($item, '');
+            $table->isNewRecord = false;
+            if (!$table->validate()) {
+                throw new Exception(implode(BREAKS, $table->getErrors()));
+            }
+            if ($keys) {
+                foreach ($keys as $key) {
+                    if (isset($item[$key])) {
+                        $table->$key = $item[$key];
+                    }
+                }
+            }
+            foreach ($table->toArray() as $name => $value) {
+                $names[] = $this->quoteColumnName($name);
+                if (!$i) {
+                    $updates[] = $this->quoteColumnName($name) . "=values(" . $this->quoteColumnName($name) . ")";
+                }
+                if ($value instanceof Expression) {
+                    $placeholders[] = $value->expression;
+                    foreach ($value->params as $n => $v) {
+                        $params[$n] = $v;
+                    }
+                } else {
+                    $placeholders[] = ':' . $name . $i;
+                    $params[':' . $name . $i] = $value;
+                }
+            }
+            if (!$i) {
+                $sql = 'INSERT INTO ' . $this->quoteTableName($table::tableName())
+                    . ' (' . implode(', ', $names) . ') VALUES ('
+                    . implode(', ', $placeholders) . ')';
+            } else {
+                $sql .= ',(' . implode(', ', $placeholders) . ')';
+            }
+            $i++;
+        }
+        $table::getDb()->createCommand($sql, $params)->execute();
+        return count($array_columns);
+    }
+
+    /**
+     * @param ActiveRecord $model
+     * @param array $array_columns
+     * @return int
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     * @throws \rabbit\db\Exception
+     */
+    public function updateSeveral(ActiveRecord $model, array $array_columns): int
+    {
+        $params = array();
+        if (ArrayHelper::isAssociative($array_columns)) {
+            $array_columns = [$array_columns];
+        }
+        $keys = $model::primaryKey();
+        if (empty($keys)) {
+            throw new Exception("The table " . $model::tableName() . ' must have one or more primarykey to call updateSeveral function!');
+        }
+        if (!is_array($keys)) {
+            $keys = [$keys];
+        }
+        $sql = 'ALTER TABLE ' . $this->quoteTableName($model::tableName()) . ' update ';
+        $columns = array_keys(current($array_columns));
+        $sets = [];
+        $bindings = [];
+        $whereIn = [];
+        $whereVal = [];
+        foreach ($array_columns as $item) {
+            $table = clone $model;
+            //关联模型
+            if (isset($table->realation)) {
+                foreach ($table->realation as $key => $val) {
+                    if (isset($item[$key])) {
+                        $child = $table->getRelation($key)->modelClass;
+                        $child_model = new $child();
+                        if ($item[$key]) {
+                            if (!isset($item[$key][0])) {
+                                $item[$key] = [$item[$key]];
+                            }
+                            foreach ($val as $c_attr => $p_attr) {
+                                foreach ($item[$key] as $index => $param) {
+                                    $item[$key][$index][$c_attr] = $table->{$p_attr};
+                                }
+                            }
+                            if ($this->updateSeveral($child_model, $item[$key]) === false) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            $names = array();
+            $placeholders = array();
+            $table->load($item, '');
+            if (!$table->validate($columns)) {
+                throw new Exception(implode(BREAKS, $table->getErrors()));
+            }
+            foreach ($item as $name => $value) {
+                if (in_array($name, $keys)) {
+                    $whereIn[$name][] = '?';
+                    $whereVal[] = $value;
+                } else {
+                    $setSql = " `$name`=multiIf(";
+                    foreach ($keys as $key) {
+                        $bindings[] = $item[$key];
+                        $setSql .= " $key==? and";
+                    }
+                    $setSql = rtrim($setSql, "and") . ",?,$name)";
+                    $sets[] = $setSql;
+                    $bindings[] = $value;
+                }
+            }
+        }
+        $sql .= implode(', ', $sets) . " where ";
+        foreach ($keys as $key) {
+            $sql .= " `$key` in (" . implode(',', $whereIn[$key]) . ') and ';
+        }
+        $sql = rtrim($sql, "and ");
+        $params = array_merge($bindings, $whereVal);
+        $table::getDb()->createCommand($sql, $params)->execute();
+        return count($array_columns);
+    }
+
+    /**
+     * @param ActiveRecord $table
+     * @param array $array_columns
+     * @return int
+     * @throws \rabbit\db\Exception
+     */
+    public function deleteSeveral(ActiveRecord $table, array $array_columns): int
+    {
+        $keys = $table::primaryKey();
+        if (!is_array($keys)) {
+            $keys = [$keys];
+        }
+        $condition = [];
+        if (ArrayHelper::isAssociative($array_columns)) {
+            $array_columns = [$array_columns];
+        }
+        foreach ($array_columns as $item) {
+            $table->load($item, '');
+            if (isset($table->realation)) {
+                foreach ($table->realation as $key => $val) {
+                    if (isset($item[$key])) {
+                        $child = $table->getRelation($key)->modelClass;
+                        $child_model = new $child();
+                        if ($item[$key]) {
+                            if ($this->deleteSeveral($child_model, $item[$key]) === false) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            if ($keys) {
+                foreach ($keys as $key) {
+                    if (isset($item[$key])) {
+                        $condition[$key][] = $item[$key];
+                    }
+                }
+            }
+        }
+        if ($condition) {
+            $table->deleteAll($condition);
+            return count($array_columns);
+        }
+        return 0;
     }
 }

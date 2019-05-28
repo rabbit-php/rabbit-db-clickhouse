@@ -359,5 +359,32 @@ class QueryBuilder extends \rabbit\db\QueryBuilder
 
     }
 
+    /**
+     * @param string $table
+     * @param array $columns
+     * @param array|string $condition
+     * @param array $params
+     * @return string
+     */
+    public function update($table, $columns, $condition, &$params)
+    {
+        [$lines, $params] = $this->prepareUpdateSets($table, $columns, $params);
+        $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' UPDATE ' . implode(', ', $lines);
+        $where = $this->buildWhere($condition, $params);
+        return $where === '' ? $sql : $sql . ' ' . $where;
+    }
 
+    /**
+     * @param string $table
+     * @param array|string $condition
+     * @param array $params
+     * @return string
+     */
+    public function delete($table, $condition, &$params)
+    {
+        $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' DELETE ';
+        $where = $this->buildWhere($condition, $params);
+
+        return $where === '' ? $sql : $sql . ' ' . $where;
+    }
 }

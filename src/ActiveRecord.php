@@ -45,7 +45,7 @@ class ActiveRecord extends \rabbit\activerecord\ActiveRecord
     public static function primaryKey()
     {
         // TODO: Implement primaryKey() method.
-        return null;
+        return 'id';
     }
 
     /**
