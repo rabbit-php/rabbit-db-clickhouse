@@ -359,9 +359,11 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         $sql = 'ALTER TABLE ' . $this->quoteTableName($model::tableName()) . ' update ';
         $columns = array_keys(current($array_columns));
         $sets = [];
+        $setQ = [];
         $bindings = [];
         $whereIn = [];
         $whereVal = [];
+        $i = 0;
         foreach ($array_columns as $item) {
             $table = clone $model;
             //关联模型
@@ -386,8 +388,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
                     }
                 }
             }
-            $names = array();
-            $placeholders = array();
             $table->load($item, '');
             if (!$table->validate($columns)) {
                 throw new Exception(implode(BREAKS, $table->getErrors()));
@@ -397,18 +397,21 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
                     $whereIn[$name][] = '?';
                     $whereVal[] = $value;
                 } else {
-                    $setSql = " `$name`=multiIf(";
+                    $i === 0 && $sets[$name] = " `$name`=multiIf(";
                     foreach ($keys as $key) {
                         $bindings[] = $item[$key];
-                        $setSql .= " $key==? and";
+                        $sets[$name] .= "`$key`==? and ";
                     }
-                    $setSql = rtrim($setSql, "and") . ",?,$name)";
-                    $sets[] = $setSql;
+                    $sets[$name] = rtrim($sets[$name], ' and ') . ',?,';
                     $bindings[] = $value;
                 }
             }
+            $i++;
         }
-        $sql .= implode(', ', $sets) . " where ";
+        foreach ($sets as $name => $value) {
+            $sql .= $value . "`$name`)";
+        }
+        $sql .= " where ";
         foreach ($keys as $key) {
             $sql .= " `$key` in (" . implode(',', $whereIn[$key]) . ') and ';
         }
