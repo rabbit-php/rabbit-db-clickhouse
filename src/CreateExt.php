@@ -48,10 +48,13 @@ class CreateExt
      */
     private static function createSeveral(ActiveRecord $model, array $body): array
     {
+        $model->load($body, '');
         if ($model->save()) {
             $result = self::saveRealation($model, $body);
         } elseif (!$model->hasErrors()) {
             throw new Exception('Failed to create the object for unknown reason.');
+        } else {
+            throw new Exception(implode(BREAKS, $model->getErrors()));
         }
         return $result;
     }
