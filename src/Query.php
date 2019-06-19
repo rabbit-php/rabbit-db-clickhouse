@@ -180,6 +180,8 @@ class Query extends BaseQuery
         $methods = ['getmeta', 'getdata', 'getextremes', 'gettotals', 'getcountall', 'getrows'];
         if (in_array(strtolower($name), $methods)) {
             return $this->callSpecialCommand($name);
+        } else {
+            return parent::__call($name, $params);
         }
     }
 
