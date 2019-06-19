@@ -54,7 +54,7 @@ class CreateExt
         } elseif (!$model->hasErrors()) {
             throw new Exception('Failed to create the object for unknown reason.');
         } else {
-            throw new Exception(implode(BREAKS, $model->getErrors()));
+            throw new Exception(implode(BREAKS, $model->getFirstErrors()));
         }
         return $result;
     }

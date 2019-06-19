@@ -298,7 +298,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
             $table->load($item, '');
             $table->isNewRecord = false;
             if (!$table->validate()) {
-                throw new Exception(implode(BREAKS, $table->getErrors()));
+                throw new Exception(implode(BREAKS, $table->getFirstErrors()));
             }
             if ($keys) {
                 foreach ($keys as $key) {
@@ -390,7 +390,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
             }
             $table->load($item, '');
             if (!$table->validate($columns)) {
-                throw new Exception(implode(BREAKS, $table->getErrors()));
+                throw new Exception(implode(BREAKS, $table->getFirstErrors()));
             }
             foreach ($item as $name => $value) {
                 if (in_array($name, $keys)) {
