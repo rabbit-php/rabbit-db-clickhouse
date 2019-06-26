@@ -39,7 +39,7 @@ class Query extends BaseQuery
     public function createCommand($db = null)
     {
         if ($db === null) {
-            $db = getDI('clickhouse');
+            $db = getDI('clickhouse')->getConnection();
         }
         list ($sql, $params) = $db->getQueryBuilder()->build($this);
 

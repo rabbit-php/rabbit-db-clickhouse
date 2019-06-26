@@ -44,7 +44,7 @@ class Manager
      * @param string $name
      * @return Connection
      */
-    public function getConnection(string $name = 'db'): Connection
+    public function getConnection(string $name = 'db'): ?Connection
     {
         if(!isset($this->connections[$name])){
             return null;
