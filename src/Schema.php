@@ -232,6 +232,6 @@ class Schema extends \rabbit\db\Schema
      */
     protected function createColumnSchema()
     {
-        return ObjectFactory::createObject(ColumnSchema::class);
+        return ObjectFactory::createObject(ColumnSchema::class, [], false);
     }
 }
