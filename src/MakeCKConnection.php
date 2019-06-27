@@ -12,13 +12,13 @@ class MakeCKConnection
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    public static function addConnection(string $name, string $dsn, array $config = null): void
+    public static function addConnection(string $class, string $name, string $dsn, array $config = null): void
     {
         /** @var Manager $manager */
         $manager = getDI('clickhouse');
         if (!$manager->hasConnection($name)) {
             $conn = [
-                'class' => Connection::class,
+                'class' => $class,
                 'dsn' => $dsn,
             ];
             if (is_array($config)) {
