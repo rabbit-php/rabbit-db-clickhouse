@@ -28,7 +28,7 @@ class Manager
      * Manager constructor.
      * @param array $configs
      */
-    public function __construct(array $configs)
+    public function __construct(array $configs = [])
     {
         $this->addConnection($configs);
     }
@@ -73,9 +73,11 @@ class Manager
     {
         foreach ($this->yamlList as $fileName) {
             foreach (yaml_parse_file($fileName) as $name => $dbconfig) {
-                if (!isset($dbconfig['class']) || !isset($dbconfig['dsn']) ||
-                    !class_exists($dbconfig['class']) || !$dbconfig['class'] instanceof ConnectionInterface) {
-                    throw new Exception("The DB class and dsn must be set current class in $fileName");
+                if (!isset($dbconfig['class']) || !class_exists($dbconfig['class']) || !$dbconfig['class'] instanceof ConnectionInterface) {
+                    $dbconfig['class'] = Connection::class;
+                }
+                if (!isset($dbconfig['dsn'])) {
+                    throw new Exception("The dsn must be set current class in $fileName");
                 }
                 $conn = [
                     'class' => $dbconfig['class'],
