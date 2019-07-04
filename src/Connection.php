@@ -33,6 +33,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public $reTrytimes = 3;
 
     public $clientDriver = 'saber';
+
+    public $bufferSize = 128;
     /**
      * @var string
      */
@@ -63,13 +65,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         if (isset($parsed['query']['database'])) {
             $this->database = $parsed['query']['database'];
         }
-
-        $this->_transport = new Client([
-            'base_uri' => $this->dsn,
-            'use_pool' => false,
-            'timeout' => $this->timeout,
-            'retry_time' => $this->reTrytimes
-        ], $this->clientDriver);
     }
 
     /**
@@ -114,6 +109,15 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         if ($this->getIsActive()) {
             return;
         }
+        $this->_transport = new Client([
+            'base_uri' => $this->dsn,
+            'use_pool' => false,
+            'timeout' => $this->timeout,
+            'retry_time' => $this->reTrytimes,
+            'before' => function (\Swlib\Saber\Request $request) {
+                $request->proxy = ['socket_buffer_size' => $this->bufferSize * 1024 * 1024];
+            },
+        ], $this->clientDriver);
     }
 
     /**
