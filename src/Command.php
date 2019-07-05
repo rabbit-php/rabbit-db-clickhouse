@@ -143,9 +143,7 @@ class Command extends BaseCommand
     public function execute()
     {
         $rawSql = $this->getRawSql();
-        $response = $this->db->getTransport()->post($this->getBaseUrl(), [
-            'body' => $rawSql
-        ]);
+        $response = $this->db->getTransport()->post($this->getBaseUrl(), $rawSql);
 
         $this->checkResponseStatus($response);
 
@@ -246,9 +244,7 @@ class Command extends BaseCommand
         }
 
         try {
-            $response = $this->db->getTransport()->post($this->getBaseUrl(), [
-                'body' => $rawSql
-            ]);
+            $response = $this->db->getTransport()->post($this->getBaseUrl(), $rawSql);
 
             $this->checkResponseStatus($response);
 
@@ -345,7 +341,7 @@ class Command extends BaseCommand
 
         $type = strtolower($type);
         $hash = [
-            'application/json' => 'jsonArray'
+            'application/json' => 'getParsedJsonArray'
         ];
 
         $result = (isset($hash[$type])) ? $response->{$hash[$type]}() : (string)$response->getBody();
@@ -519,9 +515,8 @@ class Command extends BaseCommand
 
         App::debug($sql, $categoryLog);
 
-        $urlBase = $this->db->transport->baseUrl;
         $requests = [];
-        $url = $this->db->buildUrl($urlBase, [
+        $url = $this->db->buildUrl($this->getBaseUrl(), [
             'database' => $this->db->database,
             'query' => $sql,
         ]);
@@ -529,9 +524,7 @@ class Command extends BaseCommand
         $group = CoroHelper::createGroup();
         foreach ($files as $key => $file) {
             $group->add($key, function () use ($url, $file) {
-                return $this->db->getTransport()->post($url, [
-                    'body' => file_get_contents($file)
-                ]);
+                return $this->db->getTransport()->post($url, file_get_contents($file));
             });
         }
 
@@ -559,9 +552,8 @@ class Command extends BaseCommand
 
         App::debug($sql, $categoryLog);
 
-        $urlBase = $this->db->getTransport()->baseUrl;
         $responses = [];
-        $url = $this->db->buildUrl($urlBase, [
+        $url = $this->db->buildUrl($this->db->dsn, [
             'database' => $this->db->database,
             'query' => $sql,
         ]);
@@ -577,9 +569,7 @@ class Command extends BaseCommand
                         if ($count >= $size) {
                             $group->add($key, function () use ($part) {
                                 return [
-                                    'part_' . ($part++) => $this->db->getTransport()->post($url, [
-                                        'body' => $buffer
-                                    ])
+                                    'part_' . ($part++) => $this->db->getTransport()->post($url, $buffer)
                                 ];
                             });
                             $buffer = '';
@@ -589,9 +579,7 @@ class Command extends BaseCommand
                     if (!empty($buffer)) {
                         $group->add($key, function () use ($part) {
                             return [
-                                'part_' . ($part++) => $this->db->getTransport()->post($url, [
-                                    'body' => $buffer
-                                ])
+                                'part_' . ($part++) => $this->db->getTransport()->post($url, $buffer)
                             ];
                         });
                     }

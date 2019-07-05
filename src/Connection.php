@@ -8,7 +8,7 @@ use rabbit\db\ConnectionInterface;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\helper\ArrayHelper;
-use rabbit\httpclient\Client;
+use Swlib\Saber;
 
 /**
  * Class Connection
@@ -45,7 +45,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         'clickhouse' => Schema::class
     ];
 
-    /** @var Client */
+    /** @var Saber */
     private $_transport = false;
 
     private $_schema;
@@ -91,9 +91,9 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
 
 
     /**
-     * @return Client
+     * @return Saber
      */
-    public function getTransport(): Client
+    public function getTransport(): Saber
     {
         return $this->_transport;
     }
@@ -109,7 +109,20 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         if ($this->getIsActive()) {
             return;
         }
-        $this->_transport = new Client([
+        $parsed = parse_url($this->dsn);
+        if (!isset($parsed['path'])) {
+            $parsed['path'] = '/';
+        }
+        $user = !empty($parsed['user']) ? $parsed['user'] : '';
+        $pwd = !empty($parsed['pass']) ? $parsed['pass'] : '';
+        $this->dsn = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http')
+            . '://'
+            . $parsed['host']
+            . (!empty($parsed['port']) ? ':' . $parsed['port'] : '')
+            . $parsed['path']
+            . '?'
+            . $parsed['query'];
+        $options = array_merge([
             'base_uri' => $this->dsn,
             'use_pool' => false,
             'timeout' => $this->timeout,
@@ -117,7 +130,13 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
             'before' => function (\Swlib\Saber\Request $request) {
                 $request->proxy = ['socket_buffer_size' => $this->bufferSize * 1024 * 1024];
             },
-        ], $this->clientDriver);
+        ], array_filter([
+            'auth' => [
+                'username' => $user,
+                'password' => $pwd
+            ]
+        ]));
+        $this->_transport = Saber::create($options);
     }
 
     /**
@@ -129,25 +148,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         if (empty($data)) {
             return $this->dsn;
         }
-        $parsed = parse_url($this->dsn);
-        isset($parsed['query']) ? parse_str($parsed['query'], $parsed['query']) : $parsed['query'] = [];
-        $params = isset($parsed['query']) ? array_merge($parsed['query'], $data) : $data;
-
-        $parsed['query'] = !empty($params) ? '?' . http_build_query($params) : '';
-        if (!isset($parsed['path'])) {
-            $parsed['path'] = '/';
-        }
-
-        $auth = (!empty($parsed['user']) ? $parsed['user'] : '') . (!empty($parsed['pass']) ? ':' . $parsed['pass'] : '');
-        $defaultScheme = 'http';
-
-        return (isset($parsed['scheme']) ? $parsed['scheme'] : $defaultScheme)
-            . '://'
-            . (!empty($auth) ? $auth . '@' : '')
-            . $parsed['host']
-            . (!empty($parsed['port']) ? ':' . $parsed['port'] : '')
-            . $parsed['path']
-            . $parsed['query'];
+        $this->_transport->setOptions($data);
+        return $this->dsn;
     }
 
 
@@ -172,8 +174,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     {
         $this->open();
         $query = 'SELECT 1';
-        $response = $this->_transport->post('', [
-            'body' => $query,
+        $response = $this->_transport->post('', $query, [
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded'
             ]
