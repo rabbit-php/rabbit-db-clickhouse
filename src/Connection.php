@@ -25,16 +25,12 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      * @var string the hostname or ip address to use for connecting to the click-house server. Defaults to 'localhost'.
      */
     public $dsn = 'localhost';
-
+    /** @var int */
     public $timeout = 3;
-
+    /** @var bool */
     public $usePool = false;
-
+    /** @var int */
     public $reTrytimes = 3;
-
-    public $clientDriver = 'saber';
-
-    public $bufferSize = 128;
     /**
      * @var string
      */
@@ -49,22 +45,24 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     private $_transport = false;
 
     private $_schema;
+    /** @var array */
+    private $_options = [];
 
     /**
      * Connection constructor.
      * @param string $dsn
-     * @param string $driver
+     * @param array $options
      */
-    public function __construct(string $dsn, string $driver = 'saber')
+    public function __construct(string $dsn, array $options = [])
     {
         $this->dsn = $dsn;
-        $this->clientDriver = $driver;
 
         $parsed = parse_url($this->dsn);
         isset($parsed['query']) ? parse_str($parsed['query'], $parsed['query']) : $parsed['query'] = [];
         if (isset($parsed['query']['database'])) {
             $this->database = $parsed['query']['database'];
         }
+        $this->_options = $options;
     }
 
     /**
@@ -124,13 +122,10 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
             . $parsed['query'];
         $options = array_merge([
             'base_uri' => $this->dsn,
-            'use_pool' => false,
+            'use_pool' => $this->usePool,
             'timeout' => $this->timeout,
-            'retry_time' => $this->reTrytimes,
-            'before' => function (\Swlib\Saber\Request $request) {
-                $request->proxy = ['socket_buffer_size' => $this->bufferSize * 1024 * 1024];
-            },
-        ], array_filter([
+            'retry_time' => $this->reTrytimes
+        ], $this->_options, array_filter([
             'auth' => [
                 'username' => $user,
                 'password' => $pwd
