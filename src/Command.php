@@ -9,7 +9,7 @@ use rabbit\db\Command as BaseCommand;
 use rabbit\db\Exception;
 use rabbit\db\Exception as DbException;
 use rabbit\helper\ArrayHelper;
-use rabbit\helper\CoroHelper;
+use Swlib\Saber;
 
 /**
  * Class Command
@@ -520,75 +520,9 @@ class Command extends BaseCommand
             'database' => $this->db->database,
             'query' => $sql,
         ]);
-
-        $group = CoroHelper::createGroup();
-        foreach ($files as $key => $file) {
-            $group->add($key, function () use ($url, $file) {
-                return $this->db->getTransport()->post($url, file_get_contents($file));
-            });
-        }
-
-        $responses = $group->wait(600);
-
-        return $responses;
-    }
-
-    /**
-     * @param $table
-     * @param null $columns
-     * @param array $files
-     * @param string $format
-     * @param int $size
-     * @return ResponseInterface[]
-     */
-    public function batchInsertFilesDataSize($table, $columns = null, $files = [], $format = 'CSV', $size = 10000)
-    {
-        $categoryLog = 'clickhouse';
-        if ($columns === null) {
-            $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
-        }
-        $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(', ',
-                $columns) . ')' . ' FORMAT ' . $format;
-
-        App::debug($sql, $categoryLog);
-
-        $responses = [];
-        $url = $this->db->buildUrl($this->db->dsn, [
-            'database' => $this->db->database,
-            'query' => $sql,
-        ]);
-        $group = CoroHelper::createGroup();
-        foreach ($files as $key => $file) {
-            rgo(function () use ($key, $file) {
-                if (($handle = fopen($file, 'r')) !== false) {
-                    $buffer = '';
-                    $count = $part = 0;
-                    while (($line = fgets($handle)) !== false) {
-                        $buffer .= $line;
-                        $count++;
-                        if ($count >= $size) {
-                            $group->add($key, function () use ($part) {
-                                return [
-                                    'part_' . ($part++) => $this->db->getTransport()->post($url, $buffer)
-                                ];
-                            });
-                            $buffer = '';
-                            $count = 0;
-                        }
-                    }
-                    if (!empty($buffer)) {
-                        $group->add($key, function () use ($part) {
-                            return [
-                                'part_' . ($part++) => $this->db->getTransport()->post($url, $buffer)
-                            ];
-                        });
-                    }
-                    fclose($handle);
-                }
-            });
-        }
-
-        return $group->wait(600);
+        /** @var Saber $client */
+        $client = $this->db->getTransport();
+        return $client->post($url, null, ['files' => $files]);
     }
 
     /**
