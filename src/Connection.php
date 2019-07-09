@@ -76,7 +76,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public function createCommand($sql = null, $params = [])
     {
         $this->open();
-        App::debug("Executing ClickHouse: {$sql}", 'clickhouse');
 
         /** @var Command $command */
         $command = ObjectFactory::createObject($this->commandClass, [
