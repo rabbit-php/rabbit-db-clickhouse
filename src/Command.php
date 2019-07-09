@@ -513,8 +513,6 @@ class Command extends BaseCommand
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(', ',
                 $columns) . ')' . ' FORMAT ' . $format;
 
-        App::debug($sql, $categoryLog);
-
         $requests = [];
         $url = $this->db->buildUrl($this->getBaseUrl(), [
             'database' => $this->db->database,
