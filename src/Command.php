@@ -498,6 +498,32 @@ class Command extends BaseCommand
     }
 
     /**
+     * @param string $table
+     * @param array|null $columns
+     * @param string $file
+     * @param string $format
+     */
+    public function insertFile(string $table, array $columns = null, string $file = '', string $format = 'CSV')
+    {
+        $categoryLog = 'clickhouse';
+        if ($columns === null) {
+            $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
+        }
+        $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(', ',
+                $columns) . ')' . ' FORMAT ' . $format;
+
+        App::info($sql, $categoryLog);
+        /** @var Saber $client */
+        $client = $this->db->getTransport();
+        return $client->post('', \Co::readFile($file), [
+            'uri_query' => [
+                'database' => $this->db->database,
+                'query' => $sql,
+            ]
+        ]);
+    }
+
+    /**
      * @param $table
      * @param null $columns columns default columns get schema table
      * @param array $files list files
@@ -513,14 +539,20 @@ class Command extends BaseCommand
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(', ',
                 $columns) . ')' . ' FORMAT ' . $format;
 
-        $requests = [];
-        $url = $this->db->buildUrl($this->getBaseUrl(), [
-            'database' => $this->db->database,
-            'query' => $sql,
-        ]);
+        App::info($sql, $categoryLog);
+        $responses = [];
         /** @var Saber $client */
         $client = $this->db->getTransport();
-        return $client->post($url, null, ['files' => $files]);
+        foreach ($files as $file) {
+            $body = \Co::readFile($file);
+            $responses[] = $client->post('', $body, [
+                'uri_query' => [
+                    'database' => $this->db->database,
+                    'query' => $sql,
+                ]
+            ]);
+        }
+        return $responses;
     }
 
     /**
