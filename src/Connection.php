@@ -2,13 +2,14 @@
 
 namespace rabbit\db\clickhouse;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\StreamHandler;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\helper\ArrayHelper;
-use Swlib\Saber;
 
 /**
  * Class Connection
@@ -41,7 +42,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         'clickhouse' => Schema::class
     ];
 
-    /** @var Saber */
+    /** @var Client */
     private $_transport = false;
 
     private $_schema;
@@ -90,7 +91,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     /**
      * @return Saber
      */
-    public function getTransport(): Saber
+    public function getTransport(): Client
     {
         return $this->_transport;
     }
@@ -126,26 +127,13 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
             'retry_time' => $this->reTrytimes
         ], $this->_options, array_filter([
             'auth' => [
-                'username' => $user,
-                'password' => $pwd
+                $user,
+                $pwd
             ]
         ]));
-        $this->_transport = Saber::create($options);
+        $options['handler'] = new StreamHandler();
+        $this->_transport = new Client($options);
     }
-
-    /**
-     * @param array $data
-     * @return string
-     */
-    public function buildUrl($data = [])
-    {
-        if (empty($data)) {
-            return $this->dsn;
-        }
-        $this->_transport->setOptions($data);
-        return $this->dsn;
-    }
-
 
     /**
      * @param string $str
@@ -168,7 +156,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     {
         $this->open();
         $query = 'SELECT 1';
-        $response = $this->_transport->post('', $query, [
+        $response = $this->_transport->post('', [
+            'body' => $query,
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded'
             ]

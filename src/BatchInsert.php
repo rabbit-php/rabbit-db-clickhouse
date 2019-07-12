@@ -108,15 +108,7 @@ class BatchInsert
      */
     public function execute()
     {
-        try {
-            $this->db->createCommand()->insertFile($this->table, $this->columns, $this->fileName);
-            return $this->hasRows;
-        } catch (TransferException $e) {
-            if ($e->hasResponse()) {
-                $response = $e->getResponse();
-                App::error((string)$response->getBody());
-            }
-            throw $e;
-        }
+        $this->db->createCommand()->insertFile($this->table, $this->columns, $this->fileName);
+        return $this->hasRows;
     }
 }

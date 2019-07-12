@@ -2,6 +2,7 @@
 
 namespace rabbit\db\clickhouse;
 
+use GuzzleHttp\Client;
 use Psr\Http\Message\ResponseInterface;
 use Psr\SimpleCache\CacheInterface;
 use rabbit\App;
@@ -143,7 +144,7 @@ class Command extends BaseCommand
     public function execute()
     {
         $rawSql = $this->getRawSql();
-        $response = $this->db->getTransport()->post($this->getBaseUrl(), $rawSql);
+        $response = $this->db->getTransport()->post('', ['body' => $rawSql]);
 
         $this->checkResponseStatus($response);
 
@@ -244,7 +245,7 @@ class Command extends BaseCommand
         }
 
         try {
-            $response = $this->db->getTransport()->post($this->getBaseUrl(), $rawSql);
+            $response = $this->db->getTransport()->post('', ['body' => $rawSql]);
 
             $this->checkResponseStatus($response);
 
@@ -277,12 +278,6 @@ class Command extends BaseCommand
             'statistics' => $this->getStatistics(),
             'extremes' => $this->getExtremes(),
         ];
-    }
-
-
-    protected function getBaseUrl()
-    {
-        return $this->db->buildUrl($this->getOptions());
     }
 
     /**
@@ -340,11 +335,13 @@ class Command extends BaseCommand
         list($type) = explode(';', $contentType);
 
         $type = strtolower($type);
+
         $hash = [
-            'application/json' => 'getParsedJsonArray'
+            'application/json'
         ];
 
-        $result = (isset($hash[$type])) ? $response->{$hash[$type]}() : (string)$response->getBody();
+        $result = in_array($type, $hash) ? json_decode((string)$response->getBody(),
+            true) : (string)$response->getBody();
         return $result;
     }
 
@@ -515,8 +512,9 @@ class Command extends BaseCommand
         App::info($sql, $categoryLog);
         /** @var Saber $client */
         $client = $this->db->getTransport();
-        return $client->post('', \Co::readFile($file), [
-            'uri_query' => [
+        return $client->post('', [
+            'body' => \Co::readFile($file),
+            'query' => [
                 'database' => $this->db->database,
                 'query' => $sql,
             ]
@@ -541,12 +539,13 @@ class Command extends BaseCommand
 
         App::info($sql, $categoryLog);
         $responses = [];
-        /** @var Saber $client */
+        /** @var Client $client */
         $client = $this->db->getTransport();
         foreach ($files as $file) {
             $body = \Co::readFile($file);
-            $responses[] = $client->post('', $body, [
-                'uri_query' => [
+            $responses[] = $client->post('', [
+                'body' => $body,
+                'query' => [
                     'database' => $this->db->database,
                     'query' => $sql,
                 ]
