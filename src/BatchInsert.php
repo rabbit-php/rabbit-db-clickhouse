@@ -3,7 +3,9 @@
 
 namespace rabbit\db\clickhouse;
 
+use rabbit\App;
 use rabbit\db\ConnectionInterface;
+use Swlib\Http\Exception\TransferException;
 
 /**'
  * Class BatchInsert
@@ -34,10 +36,15 @@ class BatchInsert
      * @param array $columns
      * @param ConnectionInterface $db
      */
-    public function __construct(string $table, string $fileName, ConnectionInterface $db)
-    {
+    public function __construct(
+        string $table,
+        string $fileName,
+        ConnectionInterface $db,
+        string $cacheDir = '/dev/shm/'
+    ) {
         $this->table = $table;
         $this->db = $db;
+        $this->cacheDir = $cacheDir;
         $this->fileName = $this->cacheDir . pathinfo($fileName, PATHINFO_FILENAME) . '.' . $this->ext;
         $this->open();
     }
@@ -54,6 +61,7 @@ class BatchInsert
         if ($this->fp !== null) {
             @fclose($this->fp);
             @unlink($this->fileName);
+            $this->fp = null;
         }
     }
 
@@ -92,8 +100,7 @@ class BatchInsert
 
     public function clearData()
     {
-        $this->close();
-        $this->open();
+        @ftruncate($this->fp, 0);
     }
 
     /**
@@ -101,7 +108,15 @@ class BatchInsert
      */
     public function execute()
     {
-        $this->db->createCommand()->insertFile($this->table, $this->columns, $this->fileName);
-        return $this->hasRows;
+        try {
+            $this->db->createCommand()->insertFile($this->table, $this->columns, $this->fileName);
+            return $this->hasRows;
+        } catch (TransferException $e) {
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+                App::error((string)$response->getBody());
+            }
+            throw $e;
+        }
     }
 }
