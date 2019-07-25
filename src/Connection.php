@@ -21,11 +21,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      * @var string name use database default use value  "default"
      */
     public $database = 'default';
-
-    /**
-     * @var string the hostname or ip address to use for connecting to the click-house server. Defaults to 'localhost'.
-     */
-    public $dsn = 'localhost';
     /** @var int */
     public $timeout = 3;
     /** @var bool */
@@ -57,13 +52,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public function __construct(string $dsn, array $options = [])
     {
         $this->dsn = $dsn;
-
-        $parsed = parse_url($this->dsn);
-        isset($parsed['query']) ? parse_str($parsed['query'], $parsed['query']) : $parsed['query'] = [];
-        if (isset($parsed['query']['database'])) {
-            $this->database = $parsed['query']['database'];
-        }
         $this->_options = $options;
+        $this->open();
     }
 
     /**
@@ -111,9 +101,13 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         if (!isset($parsed['path'])) {
             $parsed['path'] = '/';
         }
+        isset($parsed['query']) ? parse_str($parsed['query'], $query) : $query = [];
+        if (isset($query['database'])) {
+            $this->database = $query['database'];
+        }
         $user = !empty($parsed['user']) ? $parsed['user'] : '';
         $pwd = !empty($parsed['pass']) ? $parsed['pass'] : '';
-        $this->dsn = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http')
+        $this->shortDsn = $this->dsn = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http')
             . '://'
             . $parsed['host']
             . (!empty($parsed['port']) ? ':' . $parsed['port'] : '')
@@ -185,8 +179,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public function close()
     {
         if ($this->getIsActive()) {
-            $connection = ($this->dsn . ':' . $this->port);
-            App::debug('Closing DB connection: ' . $connection, __METHOD__);
+            App::warning('Closing DB connection: ' . $this->shortDsn, 'clickhouse');
         }
     }
 
