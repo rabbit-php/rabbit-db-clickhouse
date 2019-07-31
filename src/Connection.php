@@ -92,7 +92,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         return $this->_transport !== false;
     }
 
-    public function open()
+    public function open(int $attempt = 0)
     {
         if ($this->getIsActive()) {
             return;
