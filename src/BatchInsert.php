@@ -3,86 +3,14 @@
 
 namespace rabbit\db\clickhouse;
 
-use rabbit\App;
-use rabbit\db\ConnectionInterface;
-use Swlib\Http\Exception\TransferException;
+use rabbit\helper\StringHelper;
 
 /**'
  * Class BatchInsert
  * @package rabbit\db
  */
-class BatchInsert
+class BatchInsert extends \rabbit\db\BatchInsert
 {
-    /** @var string */
-    private $table;
-    /** @var Connection */
-    private $db;
-    /** @var array */
-    private $columns = [];
-    /** @var string */
-    private $cacheDir = '/dev/shm/';
-    /** @var bool|resource */
-    private $fp;
-    /** @var string */
-    private $ext = 'csv';
-    /** @var string */
-    private $fileName;
-    /** @var int */
-    private $hasRows = 0;
-
-    /**
-     * BatchInsert constructor.
-     * @param string $table
-     * @param array $columns
-     * @param ConnectionInterface $db
-     */
-    public function __construct(
-        string $table,
-        string $fileName,
-        ConnectionInterface $db,
-        string $cacheDir = '/dev/shm/'
-    ) {
-        $this->table = $table;
-        $this->db = $db;
-        $this->cacheDir = $cacheDir;
-        $this->fileName = $this->cacheDir . pathinfo($fileName, PATHINFO_FILENAME) . '.' . $this->ext;
-        $this->open();
-    }
-
-    private function open()
-    {
-        if (($this->fp = @fopen($this->fileName, 'w+')) === false) {
-            throw new \InvalidArgumentException("Unable to open file: {$fileName}");
-        }
-    }
-
-    private function close()
-    {
-        if ($this->fp !== null) {
-            @fclose($this->fp);
-            @unlink($this->fileName);
-            $this->fp = null;
-        }
-    }
-
-    public function __destruct()
-    {
-        $this->close();
-    }
-
-    /**
-     * @param array $columns
-     * @return bool
-     */
-    public function addColumns(array $columns): bool
-    {
-        if (empty($columns)) {
-            return false;
-        }
-        $this->columns = $columns;
-        return true;
-    }
-
     /**
      * @param array $rows
      * @param bool $checkFields
@@ -94,21 +22,67 @@ class BatchInsert
             return false;
         }
         $this->hasRows++;
-        @fputcsv($this->fp, $rows);
+        if ($checkFields) {
+            foreach ($rows as $i => $value) {
+                $exist = isset($this->columns[$i], $this->columnSchemas[trim($this->columns[$i], '`')]);
+                if ($exist) {
+                    $columnSchema = $this->columnSchemas[trim($this->columns[$i], '`')];
+                    $value = $columnSchema->dbTypecast($value);
+                }
+                if (is_string($value)) {
+                    if ($columnSchema !== null) {
+                        switch (true) {
+                            case $columnSchema->dbType === "DateTime":
+                            case $columnSchema->dbType === "Date":
+                                $value = strtotime($value);
+                                break;
+                            case strpos($columnSchema->dbType, "Int") !== false:
+                            case strpos($columnSchema->dbType, "Float") !== false:
+                            case strpos($columnSchema->dbType, "Decimal") !== false:
+                                if (strtolower($value) === 'false') {
+                                    $value = 0;
+                                } elseif (strtolower($value) === 'true') {
+                                    $value = 1;
+                                } else {
+                                    $value = floatval($value);
+                                }
+                                break;
+                            default:
+                                $value = $this->schema->quoteValue($value);
+                        }
+                    }
+                } elseif (is_float($value)) {
+                    // ensure type cast always has . as decimal separator in all locales
+                    $value = StringHelper::floatToString($value);
+                } elseif ($value === false) {
+                    $value = 0;
+                } elseif ($value === null) {
+                    if ($columnSchema !== null) {
+                        $dbType = $columnSchema->dbType;
+                        switch (true) {
+                            case strpos($dbType, "Int") !== false:
+                            case strpos($dbType, "Float") !== false:
+                            case strpos($dbType, "Decimal") !== false:
+                                $value = 0;
+                                break;
+                            case $dbType === "DateTime":
+                            case $dbType === "Date":
+                                $value = time();
+                                break;
+                            case strpos($dbType, "String") !== false:
+                            default:
+                                $value = $this->schema->quoteValue("");
+                        }
+                    } else {
+                        $value = "NULL";
+                    }
+                } elseif (is_array($value)) {
+                    $value = $this->schema->quoteValue(json_encode($value, JSON_UNESCAPED_UNICODE));
+                }
+                $rows[$i] = $value;
+            }
+        }
+        $this->sql .= '(' . implode(', ', $rows) . '),';
         return true;
-    }
-
-    public function clearData()
-    {
-        @ftruncate($this->fp, 0);
-    }
-
-    /**
-     * @return mixed
-     */
-    public function execute()
-    {
-        $this->db->createCommand()->insertFile($this->table, $this->columns, $this->fileName);
-        return $this->hasRows;
     }
 }

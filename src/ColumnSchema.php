@@ -38,7 +38,9 @@ class ColumnSchema extends BaseColumnSchema
             return $value;
         }
 
-        if (is_array($value)
+        if (is_array($value) && strpos($this->dbType, 'Array(') !== false) {
+            return $value;
+        } elseif (is_array($value)
             && count($value) === 2
             && isset($value[1])
             && in_array($value[1], $this->getPdoParamTypes(), true)

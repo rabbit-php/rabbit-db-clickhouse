@@ -149,6 +149,28 @@ class Schema extends \rabbit\db\Schema
     }
 
     /**
+     * Quotes a column name for use in a query.
+     * If the column name contains prefix, the prefix will also be properly quoted.
+     * If the column name is already quoted or contains '(', '[[' or '{{',
+     * then this method will do nothing.
+     * @param string $name column name
+     * @return string the properly quoted column name
+     * @see quoteSimpleColumnName()
+     */
+    public function quoteColumnName($name)
+    {
+        if (strpos($name, '(') !== false || strpos($name, '[[') !== false || strrpos($name, '.') !== false) {
+            return $name;
+        }
+        $prefix = '';
+        if (strpos($name, '{{') !== false) {
+            return $name;
+        }
+
+        return $prefix . $this->quoteSimpleColumnName($name);
+    }
+
+    /**
      * @param string $schema
      * @return array
      * @throws \DI\DependencyException
