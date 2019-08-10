@@ -40,7 +40,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     /** @var Client */
     private $_transport = false;
 
-    private $_schema;
     /** @var array */
     private $_options = [];
 
