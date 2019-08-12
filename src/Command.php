@@ -144,6 +144,10 @@ class Command extends BaseCommand
     public function execute()
     {
         $rawSql = $this->getRawSql();
+
+        if (strlen($rawSql) < 256) {
+            App::info($rawSql, 'clickhouse');
+        }
         $response = $this->db->getTransport()->post('', ['body' => $rawSql]);
 
         $this->checkResponseStatus($response);
@@ -170,7 +174,11 @@ class Command extends BaseCommand
     public function queryScalar()
     {
         $result = $this->queryInternal(self::FETCH_SCALAR, 0);
-        return (is_numeric($result)) ? ($result + 0) : $result;
+        if (is_array($result)) {
+            return current($result);
+        } else {
+            return $result;
+        }
     }
 
     public function getRawSql()

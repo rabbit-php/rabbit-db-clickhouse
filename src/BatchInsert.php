@@ -37,6 +37,14 @@ class BatchInsert extends \rabbit\db\BatchInsert
                                 $value = strtotime($value);
                                 break;
                             case strpos($columnSchema->dbType, "Int") !== false:
+                                if (strtolower($value) === 'false') {
+                                    $value = 0;
+                                } elseif (strtolower($value) === 'true') {
+                                    $value = 1;
+                                } else {
+                                    $value = intval($value);
+                                }
+                                break;
                             case strpos($columnSchema->dbType, "Float") !== false:
                             case strpos($columnSchema->dbType, "Decimal") !== false:
                                 if (strtolower($value) === 'false') {
@@ -63,11 +71,9 @@ class BatchInsert extends \rabbit\db\BatchInsert
                             case strpos($dbType, "Int") !== false:
                             case strpos($dbType, "Float") !== false:
                             case strpos($dbType, "Decimal") !== false:
-                                $value = 0;
-                                break;
                             case $dbType === "DateTime":
                             case $dbType === "Date":
-                                $value = time();
+                                $value = 0;
                                 break;
                             case strpos($dbType, "String") !== false:
                             default:
@@ -77,7 +83,23 @@ class BatchInsert extends \rabbit\db\BatchInsert
                         $value = "NULL";
                     }
                 } elseif (is_array($value)) {
-                    $value = $this->schema->quoteValue(json_encode($value, JSON_UNESCAPED_UNICODE));
+                    switch (true) {
+                        case strpos($columnSchema->dbType, "Int") !== false:
+                            foreach ($value as $index => $v) {
+                                $value[$index] = intval($v);
+                            }
+                            $value = str_replace('"', "", json_encode($value, JSON_UNESCAPED_UNICODE));
+                            break;
+                        case strpos($columnSchema->dbType, "Float") !== false:
+                        case strpos($columnSchema->dbType, "Decimal") !== false:
+                            foreach ($value as $index => $v) {
+                                $value[$index] = floatval($v);
+                            }
+                            $value = str_replace('"', "", json_encode($value, JSON_UNESCAPED_UNICODE));
+                            break;
+                        default:
+                            $value = str_replace('"', "'", json_encode($value, JSON_UNESCAPED_UNICODE));
+                    }
                 }
                 $rows[$i] = $value;
             }
