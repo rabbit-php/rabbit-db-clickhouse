@@ -264,8 +264,7 @@ class Command extends BaseCommand
         }
 
         if (isset($cache, $cacheKey, $info)) {
-            $cache->set($cacheKey, [$data], $info[1]);
-            App::debug('Saved query result in cache', 'clickhouse');
+            $cache->set($cacheKey, [$data], $info[1]) && App::debug('Saved query result in cache', 'clickhouse');
         }
 
         return $result;
