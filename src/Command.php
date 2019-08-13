@@ -232,7 +232,7 @@ class Command extends BaseCommand
         App::info($rawSql, 'clickhouse');
 
         if ($method !== '') {
-            $info = $this->db->getQueryCacheInfo($this->queryCacheDuration);
+            $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
             if (is_array($info)) {
                 /** @var CacheInterface $cache */
                 $cache = $info[0];
@@ -264,7 +264,7 @@ class Command extends BaseCommand
         }
 
         if (isset($cache, $cacheKey, $info)) {
-            $cache->set($cacheKey, [$data], $info[1], $info[2]);
+            $cache->set($cacheKey, [$data], $info[1]);
             App::debug('Saved query result in cache', 'clickhouse');
         }
 
