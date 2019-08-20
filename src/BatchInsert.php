@@ -24,6 +24,7 @@ class BatchInsert extends \rabbit\db\BatchInsert
         $this->hasRows++;
         if ($checkFields) {
             foreach ($rows as $i => $value) {
+                $columnSchema = null;
                 $exist = isset($this->columns[$i], $this->columnSchemas[trim($this->columns[$i], '`')]);
                 if ($exist) {
                     $columnSchema = $this->columnSchemas[trim($this->columns[$i], '`')];
