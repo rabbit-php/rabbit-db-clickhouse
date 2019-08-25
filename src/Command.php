@@ -145,7 +145,7 @@ class Command extends BaseCommand
     {
         $rawSql = $this->getRawSql();
 
-        if (strlen($rawSql) < 256) {
+        if (strlen($rawSql) < $this->db->limitShowSqlLen) {
             App::info($rawSql, 'clickhouse');
         }
         $response = $this->db->getTransport()->post('', $rawSql);
@@ -370,7 +370,12 @@ class Command extends BaseCommand
         }
     }
 
-
+    /**
+     * @param $result
+     * @param null $method
+     * @param null $fetchMode
+     * @return array|mixed|null
+     */
     private function prepareResult($result, $method = null, $fetchMode = null)
     {
         $this->prepareResponseData($result);

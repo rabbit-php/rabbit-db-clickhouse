@@ -2,7 +2,6 @@
 
 namespace rabbit\db\clickhouse;
 
-use GuzzleHttp\Client;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
@@ -42,6 +41,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
 
     /** @var array */
     private $_options = [];
+    /** @var int */
+    public $limitShowSqlLen = 1024;
 
     /**
      * Connection constructor.
