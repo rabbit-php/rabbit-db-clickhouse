@@ -7,7 +7,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\SimpleCache\CacheInterface;
 use rabbit\App;
 use rabbit\db\Command as BaseCommand;
-use rabbit\db\Exception;
 use rabbit\db\Exception as DbException;
 use rabbit\helper\ArrayHelper;
 use Swlib\Saber;
@@ -19,7 +18,8 @@ use Swlib\Saber;
  */
 class Command extends BaseCommand
 {
-
+    /** @var Connection */
+    public $db;
     const FETCH = 'fetch';
     const FETCH_ALL = 'fetchAll';
     const FETCH_COLUMN = 'fetchColumn';
@@ -78,10 +78,10 @@ class Command extends BaseCommand
     }
 
     /**
-     * @param null $format
+     * @param string|null $format
      * @return $this
      */
-    public function setFormat($format)
+    public function setFormat(?string $format)
     {
         $this->_format = $format;
         return $this;
@@ -148,7 +148,7 @@ class Command extends BaseCommand
         if (strlen($rawSql) < 256) {
             App::info($rawSql, 'clickhouse');
         }
-        $response = $this->db->getTransport()->post('', ['body' => $rawSql]);
+        $response = $this->db->getTransport()->post('', $rawSql);
 
         $this->checkResponseStatus($response);
 
@@ -253,18 +253,90 @@ class Command extends BaseCommand
         }
 
         try {
-            $response = $this->db->getTransport()->post('', ['body' => $rawSql]);
+            $response = $this->db->getTransport()->post('', $rawSql);
 
             $this->checkResponseStatus($response);
 
             $data = $this->parseResponse($response);
             $result = $this->prepareResult($data, $method, $fetchMode);
         } catch (\Exception $e) {
-            throw new Exception("Query error: " . $e->getMessage());
+            throw new DbException("Query error: " . $e->getMessage());
         }
 
         if (isset($cache, $cacheKey, $info)) {
             $cache->set($cacheKey, [$data], $info[1]) && App::debug('Saved query result in cache', 'clickhouse');
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string|null $path
+     * @return string
+     * @throws DbException
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function download(?string $path = null): string
+    {
+        $rawSql = $this->getRawSql();
+        $rawSql .= ' FORMAT CSV';
+        App::info($rawSql, 'clickhouse');
+        if ($path === null) {
+            try {
+                $response = $this->db->getTransport()->post('', $rawSql);
+                $this->checkResponseStatus($response);
+                $result = (string)$response->getBody();
+            } catch (\Exception $e) {
+                throw new DbException("Download error: " . $e->getMessage());
+            }
+        } else {
+            $fileName = [
+                __CLASS__,
+                $this->db->dsn,
+                $this->db->username,
+                $rawSql,
+            ];
+            if (\extension_loaded('igbinary')) {
+                $fileName = md5(igbinary_serialize($fileName));
+            } else {
+                $fileName = md5(serialize($fileName));
+            }
+
+            $dlFileName = "$path/{$fileName}.download";
+            $fileName = "$path/{$fileName}.csv";
+
+            if (file_exists($fileName)) {
+                return $fileName;
+            }
+
+            try {
+                $response = $this->db->getTransport()->request([
+                    'method' => 'POST',
+                    'download_dir' => $dlFileName,
+                    'download_offset' => file_exists($dlFileName) ? @filesize($dlFileName) : 0,
+                    'body' => $rawSql
+                ]);
+
+                $this->checkResponseStatus($response);
+
+                if (file_exists($dlFileName)) {
+                    @rename($dlFileName,
+                        $fileName);
+                } else {
+                    throw new DbException("{$rawSql} download failed!");
+                }
+                if ($this->queryCacheDuration > 0) {
+                    \Swoole\Timer::after($this->queryCacheDuration * 1000, function (string $path) {
+                        @unlink($path);
+                    }, $fileName);
+                }
+                $result = $fileName;
+            } catch (\Throwable $e) {
+                if (file_exists($dlFileName)) {
+                    @unlink($dlFileName);
+                }
+                throw new DbException("Download error: " . $e->getMessage());
+            }
         }
 
         return $result;
@@ -352,6 +424,9 @@ class Command extends BaseCommand
         return $result;
     }
 
+    /**
+     * @param $result
+     */
     private function prepareResponseData($result)
     {
         if (!is_array($result)) {
@@ -519,9 +594,8 @@ class Command extends BaseCommand
         App::info($sql, $categoryLog);
         /** @var Saber $client */
         $client = $this->db->getTransport();
-        return $client->post('', [
-            'body' => \Co::readFile($file),
-            'query' => [
+        return $client->post('', \Co::readFile($file), [
+            'uri_query' => [
                 'database' => $this->db->database,
                 'query' => $sql,
             ]
@@ -550,9 +624,7 @@ class Command extends BaseCommand
         /** @var Client $client */
         $client = $this->db->getTransport();
         foreach ($files as $file) {
-            $body = \Co::readFile($file);
-            $responses[] = $client->post('', [
-                'body' => $body,
+            $responses[] = $client->post('', \Co::readFile($file), [
                 'query' => [
                     'database' => $this->db->database,
                     'query' => $sql,
@@ -582,6 +654,6 @@ class Command extends BaseCommand
 
     public function query()
     {
-        throw new Exception('Clichouse unsupport cursor');
+        throw new DbException('Clichouse unsupport cursor');
     }
 }

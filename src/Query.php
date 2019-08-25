@@ -177,7 +177,7 @@ class Query extends BaseQuery
 
     public function __call($name, $params)
     {
-        $methods = ['getmeta', 'getdata', 'getextremes', 'gettotals', 'getcountall', 'getrows'];
+        $methods = ['getmeta', 'getdata', 'getextremes', 'gettotals', 'getcountall', 'getrows', 'download'];
         if (in_array(strtolower($name), $methods)) {
             return $this->callSpecialCommand($name);
         } else {

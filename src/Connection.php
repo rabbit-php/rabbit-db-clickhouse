@@ -3,13 +3,13 @@
 namespace rabbit\db\clickhouse;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Handler\StreamHandler;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\helper\ArrayHelper;
+use Swlib\Saber;
 
 /**
  * Class Connection
@@ -37,7 +37,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         'clickhouse' => Schema::class
     ];
 
-    /** @var Client */
+    /** @var Saber */
     private $_transport = false;
 
     /** @var array */
@@ -80,7 +80,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     /**
      * @return Saber
      */
-    public function getTransport(): Client
+    public function getTransport(): Saber
     {
         return $this->_transport;
     }
@@ -120,12 +120,11 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
             'retry_time' => $this->reTrytimes
         ], $this->_options, array_filter([
             'auth' => [
-                $user,
-                $pwd
+                'username' => $user,
+                'password' => $pwd
             ]
         ]));
-        $options['handler'] = new StreamHandler();
-        $this->_transport = new Client($options);
+        $this->_transport = Saber::create($options);
     }
 
     /**
