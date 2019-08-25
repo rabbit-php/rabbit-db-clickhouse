@@ -1,14 +1,10 @@
 <?php
-/**
- * @author    Dmytro Karpovych
- * @copyright 2016 NRE
- */
 
 
 namespace rabbit\db\clickhouse;
 
 
-use yii\db\ColumnSchemaBuilder as BaseColumnSchemaBuilder;
+use rabbit\db\ColumnSchemaBuilder as BaseColumnSchemaBuilder;
 
 class ColumnSchemaBuilder extends BaseColumnSchemaBuilder
 {

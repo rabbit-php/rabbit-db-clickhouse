@@ -530,10 +530,11 @@ class Command extends BaseCommand
 
     /**
      * @param $table
-     * @param null $columns columns default columns get schema table
-     * @param array $files list files
-     * @param string $format file format
-     * @return \yii\httpclient\Response[]
+     * @param null $columns
+     * @param array $files
+     * @param string $format
+     * @return array
+     * @throws \rabbit\exception\NotSupportedException
      */
     public function batchInsertFiles($table, $columns = null, $files = [], $format = 'CSV')
     {

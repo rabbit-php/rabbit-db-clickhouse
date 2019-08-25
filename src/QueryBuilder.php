@@ -164,8 +164,8 @@ class QueryBuilder extends \rabbit\db\QueryBuilder
     }
 
     /**
-     * @param string|\yii\db\ColumnSchemaBuilder $type
-     * @return mixed|string|\yii\db\ColumnSchemaBuilder
+     * @param \rabbit\db\ColumnSchemaBuilder|string $type
+     * @return mixed|\rabbit\db\ColumnSchemaBuilder|string|string[]|null
      */
     public function getColumnType($type)
     {
@@ -288,7 +288,7 @@ class QueryBuilder extends \rabbit\db\QueryBuilder
 
                 if ($value instanceof ExpressionInterface) {
                     $placeholders[] = $this->buildExpression($value, $params);
-                } elseif ($value instanceof \yii\db\Query) {
+                } elseif ($value instanceof \rabbit\db\Query) {
                     list($sql, $params) = $this->build($value, $params);
                     $placeholders[] = "($sql)";
                 } else {
