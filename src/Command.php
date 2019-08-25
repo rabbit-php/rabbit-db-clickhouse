@@ -244,7 +244,7 @@ class Command extends BaseCommand
                     $this->db->username,
                     $rawSql,
                 ];
-                $result = $cache->get($cacheKey);
+                $result = unserialize($cache->get($cacheKey));
                 if (is_array($result) && isset($result[0])) {
                     App::debug('Query result served from cache', 'clickhouse');
                     return $this->prepareResult($result[0], $method, $fetchMode);
@@ -264,7 +264,8 @@ class Command extends BaseCommand
         }
 
         if (isset($cache, $cacheKey, $info)) {
-            $cache->set($cacheKey, [$data], $info[1]) && App::debug('Saved query result in cache', 'clickhouse');
+            $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug('Saved query result in cache',
+                'clickhouse');
         }
 
         return $result;
