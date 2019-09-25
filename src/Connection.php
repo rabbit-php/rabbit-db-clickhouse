@@ -2,13 +2,13 @@
 
 namespace rabbit\db\clickhouse;
 
+use Co\Http\Client;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\helper\ArrayHelper;
-use Swlib\Saber;
 
 /**
  * Class Connection
@@ -21,11 +21,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      */
     public $database = 'default';
     /** @var int */
-    public $timeout = 3;
-    /** @var bool */
-    public $usePool = false;
-    /** @var int */
-    public $reTrytimes = 3;
+    protected $timeout = 3;
     /**
      * @var string
      */
@@ -35,12 +31,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public $schemaMap = [
         'clickhouse' => Schema::class
     ];
-
-    /** @var Saber */
-    private $_transport = false;
-
-    /** @var array */
-    private $_options = [];
     /** @var int */
     public $limitShowSqlLen = 1024;
 
@@ -49,11 +39,9 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      * @param string $dsn
      * @param array $options
      */
-    public function __construct(string $dsn, array $options = [])
+    public function __construct(string $dsn)
     {
         $this->dsn = $dsn;
-        $this->_options = $options;
-        $this->open();
     }
 
     /**
@@ -79,24 +67,21 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
 
 
     /**
-     * @return Saber
+     * @return Client
      */
-    public function getTransport(): Saber
+    public function getTransport(): Client
     {
-        return $this->_transport;
+        return $this->open();
     }
 
 
     public function getIsActive()
     {
-        return $this->_transport !== false;
+        return false;
     }
 
     public function open(int $attempt = 0)
     {
-        if ($this->getIsActive()) {
-            return;
-        }
         $parsed = parse_url($this->dsn);
         if (!isset($parsed['path'])) {
             $parsed['path'] = '/';
@@ -107,25 +92,25 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         }
         $user = !empty($parsed['user']) ? $parsed['user'] : '';
         $pwd = !empty($parsed['pass']) ? $parsed['pass'] : '';
-        $this->shortDsn = $this->dsn = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http')
+        $scheme = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http');
+        $this->shortDsn = $this->dsn = $scheme
             . '://'
             . $parsed['host']
             . (!empty($parsed['port']) ? ':' . $parsed['port'] : '')
             . $parsed['path']
             . '?'
             . $parsed['query'];
-        $options = array_merge([
-            'base_uri' => $this->dsn,
-            'use_pool' => $this->usePool,
+        $client = new Client($parsed['host'],
+            isset($parsed['port']) ? $parsed['port'] : ($scheme === 'http' ? 80 : 443),
+            $scheme === 'http' ? false : true);
+        $client->set([
             'timeout' => $this->timeout,
-            'retry_time' => $this->reTrytimes
-        ], $this->_options, array_filter([
-            'auth' => [
-                'username' => $user,
-                'password' => $pwd
-            ]
-        ]));
-        $this->_transport = Saber::create($options);
+        ]);
+        $client->setHeaders([
+            'Content-Type' => 'application/x-www-form-urlencoded'
+        ]);
+        (!empty($user) || !empty($pwd)) && $client->setBasicAuth($user, $pwd);
+        return $client;
     }
 
     /**
@@ -147,16 +132,11 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
 
     public function ping()
     {
-        $this->open();
         $query = 'SELECT 1';
-        $response = $this->_transport->post('', [
-            'body' => $query,
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded'
-            ]
-        ]);
+        $client = $this->open();
+        $client->post('/', $query);
 
-        return trim((string)$response->getBody()) == '1';
+        return trim((string)$client->getBody()) == '1';
     }
 
 

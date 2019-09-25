@@ -11,8 +11,7 @@
   ],
   "require": {
     "rabbit/framework": "dev-master",
-    "rabbit/db": "dev-master",
-    "swlib/saber": "^1.0"
+    "rabbit/db": "dev-master"
   },
   "autoload": {
     "psr-4": {
