@@ -2,7 +2,6 @@
 
 namespace rabbit\db\clickhouse;
 
-use Co\Http\Client;
 use Psr\SimpleCache\CacheInterface;
 use rabbit\App;
 use rabbit\db\Command as BaseCommand;
@@ -148,12 +147,12 @@ class Command extends BaseCommand
             App::info($rawSql, 'clickhouse');
         }
         $client = $this->db->getTransport();
-        $response = $client->post($this->getQueryString(), $rawSql);
+        $response = $client->post($client->getQueryString(), $rawSql);
 
         $this->checkResponseStatus($client);
 
         $data = $this->parseResponse($client);
-        $client->close();
+        $client->release();
         return $data;
     }
 
@@ -256,7 +255,7 @@ class Command extends BaseCommand
 
         try {
             $client = $this->db->getTransport();
-            $response = $client->post($this->getQueryString(), $rawSql);
+            $response = $client->post($client->getQueryString(), $rawSql);
 
             $this->checkResponseStatus($client);
 
@@ -265,7 +264,7 @@ class Command extends BaseCommand
         } catch (\Exception $e) {
             throw new DbException("Query error: " . $e->getMessage());
         } finally {
-            $client->close();
+            $client->release();
         }
 
         if (isset($cache, $cacheKey, $info)) {
@@ -289,13 +288,13 @@ class Command extends BaseCommand
         if ($path === null) {
             $client = $this->db->getTransport();
             try {
-                $client->post($this->getQueryString(), $rawSql);
+                $client->post($client->getQueryString(), $rawSql);
                 $this->checkResponseStatus($client);
                 $result = (string)$client->getBody();
             } catch (\Exception $e) {
                 throw new DbException("Download error: " . $e->getMessage());
             } finally {
-                $client->close();
+                $client->release();
             }
         } else {
             $fileName = [
@@ -321,10 +320,11 @@ class Command extends BaseCommand
                 $client = $this->db->getTransport();
                 $client->setDefer();
                 $client->setMethod('POST');
-                $client->download($this->getQueryString(), $dlFileName,
+                $client->download($client->getQueryString(), $dlFileName,
                     file_exists($dlFileName) ? @filesize($dlFileName) : 0);
                 $client->setData($rawSql);
                 $client->recv();
+                $client->setDefer(false);
                 $this->checkResponseStatus($client);
 
                 if (file_exists($dlFileName)) {
@@ -345,7 +345,7 @@ class Command extends BaseCommand
                 }
                 throw new DbException("Download error: " . $e->getMessage());
             } finally {
-                $client->close();
+                $client->release();
             }
         }
 
@@ -370,9 +370,10 @@ class Command extends BaseCommand
     }
 
     /**
+     * @param SwooleTransport $client
      * @throws DbException
      */
-    public function checkResponseStatus(Client $client)
+    public function checkResponseStatus(SwooleTransport $client)
     {
         if ($client->getStatusCode() != 200) {
             throw new DbException((string)$client->getBody());
@@ -418,10 +419,10 @@ class Command extends BaseCommand
 
 
     /**
-     * @param Client $client
+     * @param SwooleTransport $client
      * @return mixed|string
      */
-    private function parseResponse(Client $client)
+    private function parseResponse(SwooleTransport $client)
     {
         $contentType = $client->getHeaders()[strtolower('Content-Type')];
 
@@ -599,16 +600,16 @@ class Command extends BaseCommand
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
         $categoryLog = 'clickhouse';
         App::info($sql, $categoryLog);
-        /** @var Client $client */
+        /** @var SwooleTransport $client */
         $client = $this->db->getTransport();
         $client->setHeaders([
             'Content-Type' => 'application/x-ndjson'
         ]);
-        $client->post($this->getQueryString([
+        $client->post($client->getQueryString([
             'query' => $sql,
         ]), $rows);
         $body = $client->getBody();
-        $client->close();
+        $client->release();
         return $body;
     }
 
@@ -628,13 +629,13 @@ class Command extends BaseCommand
                 $columns) . ')' . ' FORMAT ' . $format;
 
         App::info($sql, $categoryLog);
-        /** @var Client $client */
+        /** @var SwooleTransport $client */
         $client = $this->db->getTransport();
-        $client->post($this->getQueryString([
+        $client->post($client->getQueryString([
             'query' => $sql
         ]), \Co::readFile($file));
         $body = $client->getBody();
-        $client->close();
+        $client->release();
         return $body;
     }
 
@@ -657,15 +658,15 @@ class Command extends BaseCommand
 
         App::info($sql, $categoryLog);
         $responses = [];
-        /** @var Client $client */
+        /** @var SwooleTransport $client */
         $client = $this->db->getTransport();
         foreach ($files as $file) {
-            $responses[] = $client->post($this->getQueryString([
+            $responses[] = $client->post($client->getQueryString([
                 'database' => $this->db->database,
                 'query' => $sql,
             ]), \Co::readFile($file));
         }
-        $client->close();
+        $client->release();
         return $responses;
     }
 
@@ -690,14 +691,5 @@ class Command extends BaseCommand
     public function query()
     {
         throw new DbException('Clichouse unsupport cursor');
-    }
-
-    /**
-     * @param array $query
-     * @return string
-     */
-    private function getQueryString(array $query = []): string
-    {
-        return '?' . http_build_query(array_merge($this->db->query, $query));
     }
 }

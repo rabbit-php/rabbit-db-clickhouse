@@ -2,13 +2,15 @@
 
 namespace rabbit\db\clickhouse;
 
-use Co\Http\Client;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\helper\ArrayHelper;
+use rabbit\pool\PoolInterface;
+use rabbit\pool\PoolProperties;
+use rabbit\socket\pool\SocketPool;
 
 /**
  * Class Connection
@@ -16,14 +18,8 @@ use rabbit\helper\ArrayHelper;
  */
 class Connection extends \rabbit\db\Connection implements ConnectionInterface
 {
-    /**
-     * @var string name use database default use value  "default"
-     */
-    public $database = 'default';
-    /** @var int */
-    protected $timeout = 3;
-    /** @var array */
-    public $query = [];
+    /** @var PoolInterface */
+    protected $pool;
     /**
      * @var string
      */
@@ -41,9 +37,21 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      * @param string $dsn
      * @param array $options
      */
-    public function __construct(string $dsn)
+    public function __construct($pool)
     {
-        $this->dsn = $dsn;
+        if (is_string($pool)) {
+            $pool = ObjectFactory::createObject([
+                'class' => SocketPool::class,
+                'client' => SwooleTransport::class,
+                'poolConfig' => ObjectFactory::createObject([
+                    'class' => PoolProperties::class,
+                    'minActive' => 100,
+                    'maxActive' => 120,
+                    'uri' => [$pool]
+                ], [], false)
+            ], [], false);
+        }
+        $this->pool = $pool;
     }
 
     /**
@@ -56,8 +64,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      */
     public function createCommand($sql = null, $params = [])
     {
-        $this->open();
-
         /** @var Command $command */
         $command = ObjectFactory::createObject($this->commandClass, [
             'db' => $this,
@@ -69,58 +75,17 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
 
 
     /**
-     * @return Client
+     * @return SwooleTransport
      */
-    public function getTransport(): Client
+    public function getTransport(): SwooleTransport
     {
-        return $this->open();
+        return $this->pool->getConnection();
     }
 
 
     public function getIsActive()
     {
         return false;
-    }
-
-    /**
-     * @param int $attempt
-     * @return Client|void
-     */
-    public function open(int $attempt = 0)
-    {
-        $parsed = parse_url($this->dsn);
-        if (!isset($parsed['path'])) {
-            $parsed['path'] = '/';
-        }
-
-        if (empty($this->query)) {
-            isset($parsed['query']) ? parse_str($parsed['query'], $this->query) : $this->query = [];
-            if (isset($this->query['database'])) {
-                $this->database = $this->query['database'];
-            }
-        }
-
-        $scheme = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http');
-        $this->shortDsn = $scheme
-            . '://'
-            . $parsed['host']
-            . (!empty($parsed['port']) ? ':' . $parsed['port'] : '')
-            . $parsed['path']
-            . '?'
-            . $parsed['query'];
-        $client = new Client($parsed['host'],
-            isset($parsed['port']) ? $parsed['port'] : ($scheme === 'http' ? 80 : 443),
-            $scheme === 'http' ? false : true);
-        $client->set([
-            'timeout' => $this->timeout,
-        ]);
-        $client->setHeaders([
-            'Content-Type' => 'application/x-www-form-urlencoded'
-        ]);
-        $user = !empty($parsed['user']) ? $parsed['user'] : '';
-        $pwd = !empty($parsed['pass']) ? $parsed['pass'] : '';
-        (!empty($user) || !empty($pwd)) && $client->setBasicAuth($user, $pwd);
-        return $client;
     }
 
     /**
@@ -143,10 +108,13 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public function ping()
     {
         $query = 'SELECT 1';
-        $client = $this->open();
+        /** @var SwooleTransport $client */
+        $client = $this->pool->getConnection();
         $client->post('/', $query);
 
-        return trim((string)$client->getBody()) == '1';
+        $result = trim((string)$client->getBody()) == '1';
+        $client->release();
+        return $result;
     }
 
 
