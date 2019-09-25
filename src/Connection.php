@@ -10,6 +10,7 @@ use rabbit\db\Expression;
 use rabbit\helper\ArrayHelper;
 use rabbit\pool\PoolInterface;
 use rabbit\pool\PoolProperties;
+use rabbit\socket\HttpClient;
 use rabbit\socket\pool\SocketPool;
 
 /**
@@ -42,7 +43,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         if (is_string($pool)) {
             $pool = ObjectFactory::createObject([
                 'class' => SocketPool::class,
-                'client' => SwooleTransport::class,
+                'client' => HttpClient::class,
                 'poolConfig' => ObjectFactory::createObject([
                     'class' => PoolProperties::class,
                     'minActive' => 100,
@@ -75,9 +76,9 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
 
 
     /**
-     * @return SwooleTransport
+     * @return HttpClient
      */
-    public function getTransport(): SwooleTransport
+    public function getTransport(): HttpClient
     {
         return $this->pool->getConnection();
     }
@@ -108,7 +109,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public function ping()
     {
         $query = 'SELECT 1';
-        /** @var SwooleTransport $client */
+        /** @var HttpClient $client */
         $client = $this->pool->getConnection();
         $client->post('/', $query);
 

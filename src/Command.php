@@ -7,6 +7,7 @@ use rabbit\App;
 use rabbit\db\Command as BaseCommand;
 use rabbit\db\Exception as DbException;
 use rabbit\helper\ArrayHelper;
+use rabbit\socket\HttpClient;
 use function http_build_query;
 
 /**
@@ -318,13 +319,10 @@ class Command extends BaseCommand
 
             try {
                 $client = $this->db->getTransport();
-                $client->setDefer();
                 $client->setMethod('POST');
+                $client->setData($rawSql);
                 $client->download($client->getQueryString(), $dlFileName,
                     file_exists($dlFileName) ? @filesize($dlFileName) : 0);
-                $client->setData($rawSql);
-                $client->recv();
-                $client->setDefer(false);
                 $this->checkResponseStatus($client);
 
                 if (file_exists($dlFileName)) {
@@ -370,10 +368,10 @@ class Command extends BaseCommand
     }
 
     /**
-     * @param SwooleTransport $client
+     * @param HttpClient $client
      * @throws DbException
      */
-    public function checkResponseStatus(SwooleTransport $client)
+    public function checkResponseStatus(HttpClient $client)
     {
         if ($client->getStatusCode() != 200) {
             throw new DbException((string)$client->getBody());
@@ -419,10 +417,10 @@ class Command extends BaseCommand
 
 
     /**
-     * @param SwooleTransport $client
+     * @param HttpClient $client
      * @return mixed|string
      */
-    private function parseResponse(SwooleTransport $client)
+    private function parseResponse(HttpClient $client)
     {
         $contentType = $client->getHeaders()[strtolower('Content-Type')];
 
@@ -600,7 +598,7 @@ class Command extends BaseCommand
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
         $categoryLog = 'clickhouse';
         App::info($sql, $categoryLog);
-        /** @var SwooleTransport $client */
+        /** @var HttpClient $client */
         $client = $this->db->getTransport();
         $client->setHeaders([
             'Content-Type' => 'application/x-ndjson'
@@ -629,7 +627,7 @@ class Command extends BaseCommand
                 $columns) . ')' . ' FORMAT ' . $format;
 
         App::info($sql, $categoryLog);
-        /** @var SwooleTransport $client */
+        /** @var HttpClient $client */
         $client = $this->db->getTransport();
         $client->post($client->getQueryString([
             'query' => $sql
@@ -658,7 +656,7 @@ class Command extends BaseCommand
 
         App::info($sql, $categoryLog);
         $responses = [];
-        /** @var SwooleTransport $client */
+        /** @var HttpClient $client */
         $client = $this->db->getTransport();
         foreach ($files as $file) {
             $responses[] = $client->post($client->getQueryString([
