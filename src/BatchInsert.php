@@ -43,7 +43,7 @@ class BatchInsert extends \rabbit\db\BatchInsert
                                 } elseif (strtolower($value) === 'true') {
                                     $value = 1;
                                 } else {
-                                    $value = intval($value);
+                                    $value = $columnSchema->type === Schema::TYPE_BIGINT ? $value : intval($value);
                                 }
                                 break;
                             case strpos($columnSchema->dbType, "Float") !== false:
@@ -87,7 +87,7 @@ class BatchInsert extends \rabbit\db\BatchInsert
                     switch (true) {
                         case strpos($columnSchema->dbType, "Int") !== false:
                             foreach ($value as $index => $v) {
-                                $value[$index] = intval($v);
+                                $value[$index] = $columnSchema->type === Schema::TYPE_BIGINT ? $value : intval($value);
                             }
                             $value = str_replace('"', "", json_encode($value, JSON_UNESCAPED_UNICODE));
                             break;
