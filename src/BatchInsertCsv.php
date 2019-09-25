@@ -92,8 +92,11 @@ class BatchInsertCsv
         if (empty($rows)) {
             return false;
         }
+
+        if (@fputcsv($this->fp, $rows) === false) {
+            throw new \RuntimeException("fputcsv error data=" . implode(' | ', $rows));
+        }
         $this->hasRows++;
-        @fputcsv($this->fp, $rows);
         return true;
     }
 
