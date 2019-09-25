@@ -22,6 +22,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public $database = 'default';
     /** @var int */
     protected $timeout = 3;
+    /** @var array */
+    public $query = [];
     /**
      * @var string
      */
@@ -80,20 +82,26 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param int $attempt
+     * @return Client|void
+     */
     public function open(int $attempt = 0)
     {
         $parsed = parse_url($this->dsn);
         if (!isset($parsed['path'])) {
             $parsed['path'] = '/';
         }
-        isset($parsed['query']) ? parse_str($parsed['query'], $query) : $query = [];
-        if (isset($query['database'])) {
-            $this->database = $query['database'];
+
+        if (empty($this->query)) {
+            isset($parsed['query']) ? parse_str($parsed['query'], $this->query) : $this->query = [];
+            if (isset($this->query['database'])) {
+                $this->database = $this->query['database'];
+            }
         }
-        $user = !empty($parsed['user']) ? $parsed['user'] : '';
-        $pwd = !empty($parsed['pass']) ? $parsed['pass'] : '';
+
         $scheme = (isset($parsed['scheme']) ? $parsed['scheme'] : 'http');
-        $this->shortDsn = $this->dsn = $scheme
+        $this->shortDsn = $scheme
             . '://'
             . $parsed['host']
             . (!empty($parsed['port']) ? ':' . $parsed['port'] : '')
@@ -109,6 +117,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         $client->setHeaders([
             'Content-Type' => 'application/x-www-form-urlencoded'
         ]);
+        $user = !empty($parsed['user']) ? $parsed['user'] : '';
+        $pwd = !empty($parsed['pass']) ? $parsed['pass'] : '';
         (!empty($user) || !empty($pwd)) && $client->setBasicAuth($user, $pwd);
         return $client;
     }

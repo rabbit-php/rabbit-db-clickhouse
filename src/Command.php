@@ -8,6 +8,7 @@ use rabbit\App;
 use rabbit\db\Command as BaseCommand;
 use rabbit\db\Exception as DbException;
 use rabbit\helper\ArrayHelper;
+use function http_build_query;
 
 /**
  * Class Command
@@ -147,7 +148,7 @@ class Command extends BaseCommand
             App::info($rawSql, 'clickhouse');
         }
         $client = $this->db->getTransport();
-        $response = $client->post('/', $rawSql);
+        $response = $client->post($this->getQueryString(), $rawSql);
 
         $this->checkResponseStatus($client);
 
@@ -255,7 +256,7 @@ class Command extends BaseCommand
 
         try {
             $client = $this->db->getTransport();
-            $response = $client->post('/', $rawSql);
+            $response = $client->post($this->getQueryString(), $rawSql);
 
             $this->checkResponseStatus($client);
 
@@ -288,7 +289,7 @@ class Command extends BaseCommand
         if ($path === null) {
             $client = $this->db->getTransport();
             try {
-                $client->post('/', $rawSql);
+                $client->post($this->getQueryString(), $rawSql);
                 $this->checkResponseStatus($client);
                 $result = (string)$client->getBody();
             } catch (\Exception $e) {
@@ -320,7 +321,8 @@ class Command extends BaseCommand
                 $client = $this->db->getTransport();
                 $client->setDefer();
                 $client->setMethod('POST');
-                $client->download('/', $dlFileName, file_exists($dlFileName) ? @filesize($dlFileName) : 0);
+                $client->download($this->getQueryString(), $dlFileName,
+                    file_exists($dlFileName) ? @filesize($dlFileName) : 0);
                 $client->setData($rawSql);
                 $client->recv();
                 $this->checkResponseStatus($client);
@@ -421,7 +423,7 @@ class Command extends BaseCommand
      */
     private function parseResponse(Client $client)
     {
-        $contentType = $client->getHeaders['Content-Type'];
+        $contentType = $client->getHeaders()[strtolower('Content-Type')];
 
         list($type) = explode(';', $contentType);
 
@@ -602,9 +604,8 @@ class Command extends BaseCommand
         $client->setHeaders([
             'Content-Type' => 'application/x-ndjson'
         ]);
-        $client->post(http_build_url([
-            'database' => $this->db->database,
-            'query' => $sql
+        $client->post($this->getQueryString([
+            'query' => $sql,
         ]), $rows);
         $body = $client->getBody();
         $client->close();
@@ -629,8 +630,7 @@ class Command extends BaseCommand
         App::info($sql, $categoryLog);
         /** @var Client $client */
         $client = $this->db->getTransport();
-        $client->post(http_build_url([
-            'database' => $this->db->database,
+        $client->post($this->getQueryString([
             'query' => $sql
         ]), \Co::readFile($file));
         $body = $client->getBody();
@@ -660,10 +660,10 @@ class Command extends BaseCommand
         /** @var Client $client */
         $client = $this->db->getTransport();
         foreach ($files as $file) {
-            $responses[] = $client->post('/' . http_build_query([
-                    'database' => $this->db->database,
-                    'query' => $sql,
-                ]), \Co::readFile($file));
+            $responses[] = $client->post($this->getQueryString([
+                'database' => $this->db->database,
+                'query' => $sql,
+            ]), \Co::readFile($file));
         }
         $client->close();
         return $responses;
@@ -690,5 +690,14 @@ class Command extends BaseCommand
     public function query()
     {
         throw new DbException('Clichouse unsupport cursor');
+    }
+
+    /**
+     * @param array $query
+     * @return string
+     */
+    private function getQueryString(array $query = []): string
+    {
+        return '?' . http_build_query(array_merge($this->db->query, $query));
     }
 }
