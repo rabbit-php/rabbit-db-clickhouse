@@ -5,10 +5,13 @@ namespace rabbit\db\clickhouse;
 use rabbit\App;
 use rabbit\core\ObjectFactory;
 use rabbit\db\ConnectionInterface;
+use rabbit\db\ConnectionTrait;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
+use rabbit\exception\InvalidArgumentException;
 use rabbit\helper\ArrayHelper;
 use rabbit\pool\PoolInterface;
+use rabbit\pool\PoolManager;
 use rabbit\pool\PoolProperties;
 use rabbit\socket\HttpClient;
 use rabbit\socket\pool\SocketPool;
@@ -19,8 +22,7 @@ use rabbit\socket\pool\SocketPool;
  */
 class Connection extends \rabbit\db\Connection implements ConnectionInterface
 {
-    /** @var PoolInterface */
-    protected $pool;
+    use ConnectionTrait;
     /**
      * @var string
      */
@@ -52,7 +54,10 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
                 ], [], false)
             ], [], false);
         }
-        $this->pool = $pool;
+        if (!$pool instanceof PoolInterface) {
+            throw new InvalidArgumentException("Property pool not ensure PoolInterface");
+        }
+        $this->poolKey = $pool->getPoolConfig()->getName();
     }
 
     /**
@@ -80,7 +85,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      */
     public function getTransport(): HttpClient
     {
-        return $this->pool->getConnection();
+        return PoolManager::getPool($this->poolKey)->getConnection();
     }
 
 
@@ -110,7 +115,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     {
         $query = 'SELECT 1';
         /** @var HttpClient $client */
-        $client = $this->pool->getConnection();
+        $client = PoolManager::getPool($this->poolKey)->getConnection();
         $result = trim($client->post('/', $query)->getBody()) == '1';
         return $result;
     }
