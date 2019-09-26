@@ -111,10 +111,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         $query = 'SELECT 1';
         /** @var HttpClient $client */
         $client = $this->pool->getConnection();
-        $client->post('/', $query);
-
-        $result = trim((string)$client->getBody()) == '1';
-        $client->release();
+        $result = trim($client->post('/', $query)->getBody()) == '1';
         return $result;
     }
 

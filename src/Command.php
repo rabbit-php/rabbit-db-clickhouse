@@ -2,13 +2,13 @@
 
 namespace rabbit\db\clickhouse;
 
+use Psr\Http\Message\ResponseInterface;
 use Psr\SimpleCache\CacheInterface;
 use rabbit\App;
 use rabbit\db\Command as BaseCommand;
 use rabbit\db\Exception as DbException;
 use rabbit\helper\ArrayHelper;
 use rabbit\socket\HttpClient;
-use function http_build_query;
 
 /**
  * Class Command
@@ -150,10 +150,9 @@ class Command extends BaseCommand
         $client = $this->db->getTransport();
         $response = $client->post($client->getQueryString(), $rawSql);
 
-        $this->checkResponseStatus($client);
+        $this->checkResponseStatus($response);
 
-        $data = $this->parseResponse($client);
-        $client->release();
+        $data = $this->parseResponse($response);
         return $data;
     }
 
@@ -258,14 +257,12 @@ class Command extends BaseCommand
             $client = $this->db->getTransport();
             $response = $client->post($client->getQueryString(), $rawSql);
 
-            $this->checkResponseStatus($client);
+            $this->checkResponseStatus($response);
 
-            $data = $this->parseResponse($client);
+            $data = $this->parseResponse($response);
             $result = $this->prepareResult($data, $method, $fetchMode);
         } catch (\Exception $e) {
             throw new DbException("Query error: " . $e->getMessage());
-        } finally {
-            $client->release();
         }
 
         if (isset($cache, $cacheKey, $info)) {
@@ -289,13 +286,11 @@ class Command extends BaseCommand
         if ($path === null) {
             $client = $this->db->getTransport();
             try {
-                $client->post($client->getQueryString(), $rawSql);
-                $this->checkResponseStatus($client);
-                $result = (string)$client->getBody();
+                $response = $client->post($client->getQueryString(), $rawSql);
+                $this->checkResponseStatus($response);
+                $result = (string)$response->getBody();
             } catch (\Exception $e) {
                 throw new DbException("Download error: " . $e->getMessage());
-            } finally {
-                $client->release();
             }
         } else {
             $fileName = [
@@ -321,9 +316,9 @@ class Command extends BaseCommand
                 $client = $this->db->getTransport();
                 $client->setMethod('POST');
                 $client->setData($rawSql);
-                $client->download($client->getQueryString(), $dlFileName,
+                $response = $client->download($client->getQueryString(), $dlFileName,
                     file_exists($dlFileName) ? @filesize($dlFileName) : 0);
-                $this->checkResponseStatus($client);
+                $this->checkResponseStatus($response);
 
                 if (file_exists($dlFileName)) {
                     @rename($dlFileName,
@@ -342,8 +337,6 @@ class Command extends BaseCommand
                     @unlink($dlFileName);
                 }
                 throw new DbException("Download error: " . $e->getMessage());
-            } finally {
-                $client->release();
             }
         }
 
@@ -368,10 +361,10 @@ class Command extends BaseCommand
     }
 
     /**
-     * @param HttpClient $client
+     * @param ResponseInterface $client
      * @throws DbException
      */
-    public function checkResponseStatus(HttpClient $client)
+    public function checkResponseStatus(ResponseInterface $client)
     {
         if ($client->getStatusCode() != 200) {
             throw new DbException((string)$client->getBody());
@@ -417,12 +410,12 @@ class Command extends BaseCommand
 
 
     /**
-     * @param HttpClient $client
+     * @param ResponseInterface $client
      * @return mixed|string
      */
-    private function parseResponse(HttpClient $client)
+    private function parseResponse(ResponseInterface $client)
     {
-        $contentType = $client->getHeaders()[strtolower('Content-Type')];
+        $contentType = $client->getHeader(strtolower('Content-Type'));
 
         list($type) = explode(';', $contentType);
 
@@ -603,11 +596,10 @@ class Command extends BaseCommand
         $client->setHeaders([
             'Content-Type' => 'application/x-ndjson'
         ]);
-        $client->post($client->getQueryString([
+        $response = $client->post($client->getQueryString([
             'query' => $sql,
         ]), $rows);
-        $body = $client->getBody();
-        $client->release();
+        $body = $response->getBody();
         return $body;
     }
 
@@ -629,11 +621,10 @@ class Command extends BaseCommand
         App::info($sql, $categoryLog);
         /** @var HttpClient $client */
         $client = $this->db->getTransport();
-        $client->post($client->getQueryString([
+        $response = $client->post($client->getQueryString([
             'query' => $sql
         ]), \Co::readFile($file));
-        $body = $client->getBody();
-        $client->release();
+        $body = $response->getBody();
         return $body;
     }
 
@@ -664,7 +655,6 @@ class Command extends BaseCommand
                 'query' => $sql,
             ]), \Co::readFile($file));
         }
-        $client->release();
         return $responses;
     }
 
