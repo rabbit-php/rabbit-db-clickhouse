@@ -366,7 +366,7 @@ class Command extends BaseCommand
      */
     public function checkResponseStatus(ResponseInterface $client)
     {
-        if ($client->getStatusCode() != 200) {
+        if ($client->getStatusCode() !== 200) {
             throw new DbException((string)$client->getBody());
         }
     }
@@ -415,7 +415,7 @@ class Command extends BaseCommand
      */
     private function parseResponse(ResponseInterface $client)
     {
-        $contentType = $client->getHeader(strtolower('Content-Type'));
+        $contentType = $client->getHeaderLine(strtolower('Content-Type'));
 
         list($type) = explode(';', $contentType);
 
@@ -624,6 +624,7 @@ class Command extends BaseCommand
         $response = $client->post($client->getQueryString([
             'query' => $sql
         ]), \Co::readFile($file));
+        $this->checkResponseStatus($response);
         $body = $response->getBody();
         return $body;
     }
@@ -651,7 +652,6 @@ class Command extends BaseCommand
         $client = $this->db->getTransport();
         foreach ($files as $file) {
             $responses[] = $client->post($client->getQueryString([
-                'database' => $this->db->database,
                 'query' => $sql,
             ]), \Co::readFile($file));
         }

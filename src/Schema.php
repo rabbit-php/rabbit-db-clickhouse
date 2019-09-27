@@ -192,9 +192,10 @@ class Schema extends \rabbit\db\Schema
     protected function loadTableSchema($name)
     {
         $sql = 'SELECT * FROM system.columns WHERE `table`=:name and `database`=:database FORMAT JSON';
+        $database = $this->db->getTransport()->database;
         $result = $this->db->createCommand($sql, [
             ':name' => $name,
-            ':database' => $this->db->database === null ? 'default' : $this->db->database
+            ':database' => $database === null ? 'default' : $database
         ])->queryAll();
 
         if ($result && isset($result[0])) {

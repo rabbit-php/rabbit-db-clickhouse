@@ -50,6 +50,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
                     'class' => PoolProperties::class,
                     'minActive' => 100,
                     'maxActive' => 120,
+                    'timeout' => 120,
                     'uri' => [$pool]
                 ], [], false)
             ], [], false);
