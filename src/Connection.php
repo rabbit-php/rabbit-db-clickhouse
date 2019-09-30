@@ -40,9 +40,9 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
      * @param string $dsn
      * @param array $options
      */
-    public function __construct($pool)
+    public function __construct($dsn)
     {
-        if (is_string($pool)) {
+        if (is_string($dsn)) {
             $pool = ObjectFactory::createObject([
                 'class' => SocketPool::class,
                 'client' => HttpClient::class,
@@ -51,9 +51,11 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
                     'minActive' => 100,
                     'maxActive' => 120,
                     'timeout' => 120,
-                    'uri' => [$pool]
+                    'uri' => [$dsn]
                 ], [], false)
             ], [], false);
+        } else {
+            $pool = $dsn;
         }
         if (!$pool instanceof PoolInterface) {
             throw new InvalidArgumentException("Property pool not ensure PoolInterface");
