@@ -48,6 +48,7 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
                 'client' => HttpClient::class,
                 'poolConfig' => ObjectFactory::createObject([
                     'class' => PoolProperties::class,
+                    'maxWait' => 0,
                     'minActive' => 100,
                     'maxActive' => 120,
                     'timeout' => 120,
