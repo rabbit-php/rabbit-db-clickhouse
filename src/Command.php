@@ -17,8 +17,6 @@ use rabbit\socket\HttpClient;
  */
 class Command extends BaseCommand
 {
-    /** @var Connection */
-    public $db;
     const FETCH = 'fetch';
     const FETCH_ALL = 'fetchAll';
     const FETCH_COLUMN = 'fetchColumn';
@@ -30,42 +28,40 @@ class Command extends BaseCommand
     /** @var int fetch type result */
     public $fetchMode = 0;
 
-    private $_format = null;
+    protected $_format = null;
 
-    private $_pendingParams = [];
+    protected $_is_result;
 
-    private $_is_result;
-
-    private $_options = [];
+    protected $_options = [];
 
     /**
      * @var
      */
-    private $_meta;
+    protected $_meta;
     /**
      * @var
      */
-    private $_data;
+    protected $_data;
     /**
      * @var
      */
-    private $_totals;
+    protected $_totals;
     /**
      * @var array
      */
-    private $_extremes;
+    protected $_extremes;
     /**
      * @var int
      */
-    private $_rows;
+    protected $_rows;
     /**
      * @var array
      */
-    private $_statistics;
+    protected $_statistics;
     /**
      * @var
      */
-    private $_rows_before_limit_at_least;
+    protected $_rows_before_limit_at_least;
 
 
     /**
