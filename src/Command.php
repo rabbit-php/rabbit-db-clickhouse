@@ -141,7 +141,7 @@ class Command extends BaseCommand
         $rawSql = $this->getRawSql();
 
         if (strlen($rawSql) < $this->db->limitShowSqlLen) {
-            App::info($rawSql, 'clickhouse');
+            $this->logQuery($rawSql, 'clickhouse');
         }
         $client = $this->db->getTransport();
         $response = $client->post($client->getQueryString(), $rawSql);
@@ -226,7 +226,6 @@ class Command extends BaseCommand
         if ($this->getFormat() === null && strpos($rawSql, 'FORMAT ') === false) {
             $rawSql .= ' FORMAT JSON';
         }
-        App::info($rawSql, 'clickhouse');
 
         if ($method !== '') {
             $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
@@ -243,7 +242,7 @@ class Command extends BaseCommand
                 ];
                 $result = unserialize($cache->get($cacheKey));
                 if (is_array($result) && isset($result[0])) {
-                    App::debug('Query result served from cache', 'clickhouse');
+                    $this->logQuery($rawSql.'; [Query result served from cache]', 'clickhouse');
                     return $this->prepareResult($result[0], $method, $fetchMode);
                 }
             }
@@ -280,7 +279,7 @@ class Command extends BaseCommand
     {
         $rawSql = $this->getRawSql();
         $rawSql .= ' FORMAT CSV';
-        App::info($rawSql, 'clickhouse');
+        $this->logQuery($rawSql, 'clickhouse');
         if ($path === null) {
             $client = $this->db->getTransport();
             try {
@@ -595,7 +594,7 @@ class Command extends BaseCommand
     {
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
         $categoryLog = 'clickhouse';
-        App::info($sql, $categoryLog);
+        $this->logQuery($sql, $categoryLog);
         /** @var HttpClient $client */
         $client = $this->db->getTransport();
         $client->setHeaders([
@@ -625,7 +624,7 @@ class Command extends BaseCommand
             $columns
         ) . ')' . ' FORMAT ' . $format;
 
-        App::info($sql, $categoryLog);
+        $this->logQuery($sql, $categoryLog);
         /** @var HttpClient $client */
         $client = $this->db->getTransport();
         $response = $client->post($client->getQueryString([
@@ -655,7 +654,7 @@ class Command extends BaseCommand
             $columns
         ) . ')' . ' FORMAT ' . $format;
 
-        App::info($sql, $categoryLog);
+        $this->logQuery($sql, $categoryLog);
         $responses = [];
         /** @var HttpClient $client */
         $client = $this->db->getTransport();
