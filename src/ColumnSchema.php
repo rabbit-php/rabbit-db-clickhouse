@@ -25,7 +25,8 @@ class ColumnSchema extends BaseColumnSchema
                     Schema::TYPE_BINARY,
                     Schema::TYPE_CHAR
                 ],
-                true)
+                true
+            )
         ) {
             return null;
         }

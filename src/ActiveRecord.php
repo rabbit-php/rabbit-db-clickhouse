@@ -69,6 +69,4 @@ class ActiveRecord extends \rabbit\activerecord\ActiveRecord
         $this->setOldAttributes($values);
         return true;
     }
-
-
 }

@@ -262,8 +262,10 @@ class Command extends BaseCommand
         }
 
         if (isset($cache, $cacheKey, $info)) {
-            $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug('Saved query result in cache',
-                'clickhouse');
+            $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug(
+                'Saved query result in cache',
+                'clickhouse'
+            );
         }
 
         return $result;
@@ -312,13 +314,18 @@ class Command extends BaseCommand
                 $client = $this->db->getTransport();
                 $client->setMethod('POST');
                 $client->setData($rawSql);
-                $response = $client->download($client->getQueryString(), $dlFileName,
-                    file_exists($dlFileName) ? @filesize($dlFileName) : 0);
+                $response = $client->download(
+                    $client->getQueryString(),
+                    $dlFileName,
+                    file_exists($dlFileName) ? @filesize($dlFileName) : 0
+                );
                 $this->checkResponseStatus($response);
 
                 if (file_exists($dlFileName)) {
-                    @rename($dlFileName,
-                        $fileName);
+                    @rename(
+                        $dlFileName,
+                        $fileName
+                    );
                 } else {
                     throw new DbException("{$rawSql} download failed!");
                 }
@@ -421,8 +428,10 @@ class Command extends BaseCommand
             'application/json'
         ];
 
-        $result = in_array($type, $hash) ? json_decode((string)$client->getBody(),
-            true) : (string)$client->getBody();
+        $result = in_array($type, $hash) ? json_decode(
+            (string)$client->getBody(),
+            true
+        ) : (string)$client->getBody();
         return $result;
     }
 
@@ -611,8 +620,10 @@ class Command extends BaseCommand
         if ($columns === null) {
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
-        $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(', ',
-                $columns) . ')' . ' FORMAT ' . $format;
+        $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
+            ', ',
+            $columns
+        ) . ')' . ' FORMAT ' . $format;
 
         App::info($sql, $categoryLog);
         /** @var HttpClient $client */
@@ -639,8 +650,10 @@ class Command extends BaseCommand
         if ($columns === null) {
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
-        $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(', ',
-                $columns) . ')' . ' FORMAT ' . $format;
+        $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
+            ', ',
+            $columns
+        ) . ')' . ' FORMAT ' . $format;
 
         App::info($sql, $categoryLog);
         $responses = [];

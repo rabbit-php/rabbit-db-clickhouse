@@ -25,7 +25,7 @@ class DeleteExt
         } else {
             $result = $model->deleteAll(DBHelper::Search((new Query()), $body)->where);
         }
-        if ($result ) {
+        if ($result) {
             throw new Exception('Failed to delete the object for unknown reason.');
         }
         return $result;

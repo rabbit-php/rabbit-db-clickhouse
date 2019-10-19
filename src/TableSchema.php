@@ -7,5 +7,4 @@ namespace rabbit\db\clickhouse;
  */
 class TableSchema extends \rabbit\db\TableSchema
 {
-
 }

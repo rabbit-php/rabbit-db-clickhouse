@@ -6,7 +6,6 @@ use rabbit\core\ObjectFactory;
 use rabbit\db\Exception as DbException;
 use rabbit\db\Query as BaseQuery;
 
-
 /**
  * Class Query
  * @package rabbit\db\clickhouse
@@ -41,7 +40,7 @@ class Query extends BaseQuery
         if ($db === null) {
             $db = getDI('clickhouse')->getConnection();
         }
-        list ($sql, $params) = $db->getQueryBuilder()->build($this);
+        list($sql, $params) = $db->getQueryBuilder()->build($this);
 
 
         $this->_command = $db->createCommand($sql, $params);
@@ -252,6 +251,4 @@ class Query extends BaseQuery
             'each' => true,
         ], [], false);
     }
-
-
 }

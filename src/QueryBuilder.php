@@ -324,7 +324,6 @@ class QueryBuilder extends \rabbit\db\QueryBuilder
         foreach ($rows as $row) {
             $vs = [];
             foreach ($row as $i => $value) {
-
                 if (isset($columns[$i], $columnSchemas[$columns[$i]])) {
                     $value = $columnSchemas[$columns[$i]]->dbTypecast($value);
 
@@ -356,7 +355,6 @@ class QueryBuilder extends \rabbit\db\QueryBuilder
 
         return 'INSERT INTO ' . $schema->quoteTableName($table)
             . ' (' . implode(', ', $columns) . ') VALUES ' . implode(', ', $values);
-
     }
 
     /**

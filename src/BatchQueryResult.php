@@ -164,5 +164,4 @@ class BatchQueryResult extends BaseObject implements \Iterator
     {
         return !empty($this->batch);
     }
-
 }

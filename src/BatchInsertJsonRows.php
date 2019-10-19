@@ -3,7 +3,6 @@
 
 namespace rabbit\db\clickhouse;
 
-
 use rabbit\db\ConnectionInterface;
 
 class BatchInsertJsonRows extends BatchInsert

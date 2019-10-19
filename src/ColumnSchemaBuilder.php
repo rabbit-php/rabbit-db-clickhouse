@@ -3,7 +3,6 @@
 
 namespace rabbit\db\clickhouse;
 
-
 use rabbit\db\ColumnSchemaBuilder as BaseColumnSchemaBuilder;
 
 class ColumnSchemaBuilder extends BaseColumnSchemaBuilder
