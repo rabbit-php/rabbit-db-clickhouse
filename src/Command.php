@@ -242,11 +242,13 @@ class Command extends BaseCommand
                 ];
                 $result = unserialize($cache->get($cacheKey));
                 if (is_array($result) && isset($result[0])) {
-                    $this->logQuery($rawSql.'; [Query result served from cache]', 'clickhouse');
+                    $this->logQuery($rawSql . '; [Query result served from cache]', 'clickhouse');
                     return $this->prepareResult($result[0], $method, $fetchMode);
                 }
             }
         }
+
+        $this->logQuery($rawSql);
 
         try {
             $client = $this->db->getTransport();
@@ -620,9 +622,9 @@ class Command extends BaseCommand
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
-            ', ',
-            $columns
-        ) . ')' . ' FORMAT ' . $format;
+                ', ',
+                $columns
+            ) . ')' . ' FORMAT ' . $format;
 
         $this->logQuery($sql, $categoryLog);
         /** @var HttpClient $client */
@@ -650,9 +652,9 @@ class Command extends BaseCommand
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
-            ', ',
-            $columns
-        ) . ')' . ' FORMAT ' . $format;
+                ', ',
+                $columns
+            ) . ')' . ' FORMAT ' . $format;
 
         $this->logQuery($sql, $categoryLog);
         $responses = [];
