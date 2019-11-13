@@ -20,6 +20,9 @@ class BatchInsert extends \rabbit\db\BatchInsert
         if (empty($columns)) {
             return false;
         }
+        if (($tableSchema = $this->schema->getTableSchema($this->table)) !== null) {
+            $this->columnSchemas = $tableSchema->columns;
+        }
         $this->sql .= ' (' . implode(', ', $columns) . ') VALUES ';
         $this->columns = $columns;
         return true;
