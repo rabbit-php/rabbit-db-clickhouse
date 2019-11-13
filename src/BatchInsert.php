@@ -12,6 +12,19 @@ use rabbit\helper\StringHelper;
 class BatchInsert extends \rabbit\db\BatchInsert
 {
     /**
+     * @param array $columns
+     * @return bool
+     */
+    public function addColumns(array $columns): bool
+    {
+        if (empty($columns)) {
+            return false;
+        }
+        $this->sql .= ' (' . implode(', ', $columns) . ') VALUES ';
+        $this->columns = $columns;
+        return true;
+    }
+    /**
      * @param array $rows
      * @param bool $checkFields
      * @return bool
