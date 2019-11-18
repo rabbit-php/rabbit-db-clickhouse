@@ -32,8 +32,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     public $schemaMap = [
         'clickhouse' => Schema::class
     ];
-    /** @var int */
-    public $limitShowSqlLen = 1024;
 
     /**
      * Connection constructor.

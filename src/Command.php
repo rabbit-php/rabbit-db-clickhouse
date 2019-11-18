@@ -140,7 +140,7 @@ class Command extends BaseCommand
     {
         $rawSql = $this->getRawSql();
 
-        if (strlen($rawSql) < $this->db->limitShowSqlLen) {
+        if (strlen($rawSql) < $this->db->maxLog) {
             $this->logQuery($rawSql, 'clickhouse');
         }
         $client = $this->db->getTransport();

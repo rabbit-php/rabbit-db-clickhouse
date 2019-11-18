@@ -14,7 +14,7 @@ class MakeCKConnection
     public static function addConnection(string $class, string $name, string $dsn, array $config = null): void
     {
         /** @var Manager $manager */
-        $manager = getDI('clickhouse');
+        $manager = getDI(parse_url($dsn,PHP_URL_SCHEME));
         if (!$manager->hasConnection($name)) {
             $conn = [
                 'class' => $class,
