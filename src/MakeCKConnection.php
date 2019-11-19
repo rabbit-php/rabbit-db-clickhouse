@@ -11,10 +11,11 @@ class MakeCKConnection
      * @throws \DI\DependencyException
      * @throws \DI\NotFoundException
      */
-    public static function addConnection(string $class, string $name, string $dsn, array $config = null): void
+    public static function addConnection(string $class, string $name, string $dsn, array $config = null): string
     {
+        $driver = parse_url($dsn, PHP_URL_SCHEME);
         /** @var Manager $manager */
-        $manager = getDI(parse_url($dsn,PHP_URL_SCHEME));
+        $manager = getDI($driver);
         if (!$manager->hasConnection($name)) {
             $conn = [
                 'class' => $class,
@@ -27,5 +28,6 @@ class MakeCKConnection
             }
             $manager->addConnection([$name => ObjectFactory::createObject($conn, [], false)]);
         }
+        return $driver;
     }
 }
