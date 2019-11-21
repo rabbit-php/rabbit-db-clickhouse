@@ -15,7 +15,11 @@ class MakeCKConnection
     {
         $driver = parse_url($dsn, PHP_URL_SCHEME);
         /** @var Manager $manager */
-        $manager = getDI($driver);
+        if (in_array($driver, ['http', 'https'])) {
+            $manager = getDI('clickhouse');
+        } else {
+            $manager = getDI('click');
+        }
         if (!$manager->hasConnection($name)) {
             $conn = [
                 'class' => $class,
