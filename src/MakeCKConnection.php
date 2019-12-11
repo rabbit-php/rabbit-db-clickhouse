@@ -23,14 +23,14 @@ class MakeCKConnection
         if (!$manager->hasConnection($name)) {
             $conn = [
                 'class' => $class,
-                'dsn' => $dsn,
             ];
             if (is_array($config)) {
                 foreach ($config as $key => $value) {
                     $conn[$key] = $value;
                 }
             }
-            if ($driver === 'clickhouse') {
+            if (in_array($driver, ['clickhouse', 'clickhouses'])) {
+                $conn['dsn'] = str_replace('clickhouse', 'http', $dsn);
                 $manager->addConnection([$name => ObjectFactory::createObject($conn, [], false)]);
             } elseif ($driver === 'click') {
                 $poolConfig = [
