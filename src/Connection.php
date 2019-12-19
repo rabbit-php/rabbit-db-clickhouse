@@ -26,8 +26,8 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
     /**
      * @var string
      */
-    public $commandClass = Command::class;
-    public $schemaClass = Schema::class;
+    protected $commandClass = Command::class;
+    protected $schemaClass = Schema::class;
 
     public $schemaMap = [
         'clickhouse' => Schema::class
@@ -61,26 +61,6 @@ class Connection extends \rabbit\db\Connection implements ConnectionInterface
         }
         $this->poolKey = $pool->getPoolConfig()->getName();
     }
-
-    /**
-     * @param null $sql
-     * @param array $params
-     * @return Command|\rabbit\db\Command
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
-     * @throws \rabbit\db\Exception
-     */
-    public function createCommand($sql = null, $params = [])
-    {
-        /** @var Command $command */
-        $command = ObjectFactory::createObject($this->commandClass, [
-            'db' => $this,
-            'sql' => $sql,
-        ], false);
-
-        return $command->bindValues($params);
-    }
-
 
     /**
      * @return HttpClient
