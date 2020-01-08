@@ -33,6 +33,7 @@ class MakeCKConnection
                 $conn['dsn'] = str_replace('clickhouse', 'http', $dsn);
                 $manager->addConnection([$name => ObjectFactory::createObject($conn, [], false)]);
             } elseif ($driver === 'click') {
+                $conn['dsn'] = $dsn;
                 $poolConfig = [
                     'class' => \rabbit\db\pool\PdoPoolConfig::class,
                 ];
