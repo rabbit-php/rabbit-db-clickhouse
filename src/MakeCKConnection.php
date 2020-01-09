@@ -30,7 +30,14 @@ class MakeCKConnection
                 }
             }
             if (in_array($driver, ['clickhouse', 'clickhouses'])) {
-                $conn['dsn'] = str_replace('clickhouse', 'http', $dsn);
+                $urlArr['scheme'] = str_replace('clickhouse', 'http', $urlArr['scheme']);
+                $conn['dsn'] = $urlArr['scheme'] . '://'
+                    . (isset($urlArr['user']) ? $urlArr['user'] : '')
+                    . (isset($urlArr['pass']) ? ':' . $urlArr['pass'] : '')
+                    . '@' . $urlArr['host']
+                    . (isset($urlArr['port']) ? ':' . $urlArr['port'] : '')
+                    . (isset($urlArr['path']) ? $urlArr['path'] : '')
+                    . (isset($urlArr['query']) ? '?' . $urlArr['query'] : '');
                 $manager->addConnection([$name => ObjectFactory::createObject($conn, [], false)]);
             } elseif ($driver === 'click') {
                 $conn['dsn'] = $dsn;
