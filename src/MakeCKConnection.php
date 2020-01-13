@@ -6,6 +6,7 @@ namespace rabbit\db\clickhouse;
 use rabbit\core\ObjectFactory;
 use rabbit\exception\InvalidConfigException;
 use rabbit\helper\ArrayHelper;
+use rabbit\helper\UrlHelper;
 use function Swlib\Http\parse_query;
 
 class MakeCKConnection
@@ -31,13 +32,7 @@ class MakeCKConnection
             }
             if (in_array($driver, ['clickhouse', 'clickhouses'])) {
                 $urlArr['scheme'] = str_replace('clickhouse', 'http', $urlArr['scheme']);
-                $conn['dsn'] = $urlArr['scheme'] . '://'
-                    . (isset($urlArr['user']) ? $urlArr['user'] : '')
-                    . (isset($urlArr['pass']) ? ':' . $urlArr['pass'] : '')
-                    . '@' . $urlArr['host']
-                    . (isset($urlArr['port']) ? ':' . $urlArr['port'] : '')
-                    . (isset($urlArr['path']) ? $urlArr['path'] : '')
-                    . (isset($urlArr['query']) ? '?' . $urlArr['query'] : '');
+                $conn['dsn'] = UrlHelper::unparse_url($urlArr);
                 $manager->addConnection([$name => ObjectFactory::createObject($conn, [], false)]);
             } elseif ($driver === 'click') {
                 $conn['dsn'] = $dsn;
