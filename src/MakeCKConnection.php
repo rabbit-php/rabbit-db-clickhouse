@@ -4,6 +4,7 @@
 namespace rabbit\db\clickhouse;
 
 use rabbit\core\ObjectFactory;
+use rabbit\db\click\RetryHandler;
 use rabbit\exception\InvalidConfigException;
 use rabbit\helper\ArrayHelper;
 use rabbit\helper\UrlHelper;
@@ -59,6 +60,11 @@ class MakeCKConnection
                     'class' => \rabbit\db\pool\PdoPool::class,
                     'poolConfig' => ObjectFactory::createObject($poolConfig, [], false)
                 ], [], false);
+                if (!empty($retryHandler)) {
+                    $conn['retryHandler'] = ObjectFactory::createObject($retryHandler);
+                } else {
+                    $conn['retryHandler'] = getDI(RetryHandler::class);
+                }
                 $manager->addConnection([$name => $conn]);
             } else {
                 throw new InvalidConfigException("Not support driver $driver");
