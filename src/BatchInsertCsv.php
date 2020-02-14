@@ -4,6 +4,7 @@
 namespace rabbit\db\clickhouse;
 
 use rabbit\db\ConnectionInterface;
+use rabbit\helper\FileHelper;
 
 /**
  * Class BatchInsertCsv
@@ -18,7 +19,7 @@ class BatchInsertCsv
     /** @var array */
     private $columns = [];
     /** @var string */
-    private $cacheDir = '/dev/shm/';
+    private $cacheDir = '/dev/shm/ck/csv';
     /** @var bool|resource */
     private $fp;
     /** @var string */
@@ -38,8 +39,9 @@ class BatchInsertCsv
         string $table,
         string $fileName,
         ConnectionInterface $db,
-        string $cacheDir = '/dev/shm/'
-    ) {
+        string $cacheDir = '/dev/shm/ck/csv'
+    )
+    {
         $this->table = $table;
         $this->db = $db;
         $this->cacheDir = $cacheDir;
@@ -49,7 +51,7 @@ class BatchInsertCsv
 
     private function open()
     {
-        if (($this->fp = @fopen($this->fileName, 'w+')) === false) {
+        if (!FileHelper::createDirectory($this->cacheDir) || (($this->fp = @fopen($this->fileName, 'w+')) === false)) {
             throw new \InvalidArgumentException("Unable to open file: {$fileName}");
         }
     }
