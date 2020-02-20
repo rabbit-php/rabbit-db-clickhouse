@@ -3,6 +3,7 @@
 
 namespace rabbit\db\clickhouse;
 
+use rabbit\db\BatchInterface;
 use rabbit\db\ConnectionInterface;
 use rabbit\helper\FileHelper;
 
@@ -10,7 +11,7 @@ use rabbit\helper\FileHelper;
  * Class BatchInsertCsv
  * @package rabbit\db\clickhouse
  */
-class BatchInsertCsv
+class BatchInsertCsv implements BatchInterface
 {
     /** @var string */
     private $table;
@@ -49,14 +50,14 @@ class BatchInsertCsv
         $this->open();
     }
 
-    private function open()
+    private function open(): void
     {
         if (!FileHelper::createDirectory($this->cacheDir) || (($this->fp = @fopen($this->fileName, 'w+')) === false)) {
             throw new \InvalidArgumentException("Unable to open file: {$fileName}");
         }
     }
 
-    private function close()
+    private function close(): void
     {
         if ($this->fp !== null) {
             @fclose($this->fp);
@@ -101,15 +102,15 @@ class BatchInsertCsv
         return true;
     }
 
-    public function clearData()
+    public function clearData(): void
     {
         @ftruncate($this->fp, 0);
     }
 
     /**
-     * @return mixed
+     * @return int
      */
-    public function execute()
+    public function execute(): int
     {
         $this->db->createCommand()->insertFile($this->table, $this->columns, $this->fileName);
         return $this->hasRows;
