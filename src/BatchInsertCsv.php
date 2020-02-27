@@ -95,7 +95,7 @@ class BatchInsertCsv implements BatchInterface
             return false;
         }
 
-        if (@fputcsv($this->fp, $rows) === false) {
+        if (@fputcsv($this->fp, $rows, ',', "'") === false) {
             throw new \RuntimeException("fputcsv error data=" . implode(' | ', $rows));
         }
         $this->hasRows++;
