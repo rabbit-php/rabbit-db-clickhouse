@@ -20,7 +20,7 @@ class BatchInsertCsv implements BatchInterface
     /** @var array */
     private $columns = [];
     /** @var string */
-    private $cacheDir = '/dev/shm/ck/csv';
+    private $cacheDir = '/dev/shm/ck/csv/';
     /** @var bool|resource */
     private $fp;
     /** @var string */
@@ -40,7 +40,7 @@ class BatchInsertCsv implements BatchInterface
         string $table,
         string $fileName,
         ConnectionInterface $db,
-        string $cacheDir = '/dev/shm/ck/csv'
+        string $cacheDir = '/dev/shm/ck/csv/'
     )
     {
         $this->table = $table;
