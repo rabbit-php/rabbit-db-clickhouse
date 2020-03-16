@@ -198,7 +198,7 @@ class Command extends BaseCommand
                 $params[$name] = $value;
             }
         }
-        if (!isset($params[1])) {
+        if (!isset($params[0])) {
             return strtr($this->getSql(), $params);
         }
         $sql = '';
