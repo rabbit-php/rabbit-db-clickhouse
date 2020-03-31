@@ -20,7 +20,7 @@ use rabbit\socket\pool\SocketPool;
  * Class Connection
  * @package rabbit\db\clickhouse
  */
-class Connection extends \rabbit\db\Connection implements ConnectionInterface
+class Connection extends \rabbit\db\Connection
 {
     use ConnectionTrait;
     /**
