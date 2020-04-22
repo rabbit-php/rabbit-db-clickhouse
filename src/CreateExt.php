@@ -69,25 +69,21 @@ class CreateExt
     {
         $result = [];
         //关联模型
-        if (isset($model->realation)) {
-            foreach ($model->realation as $key => $val) {
-                if (isset($body[$key])) {
-                    $child = $model->getRelation($key)->modelClass;
-                    if ($body[$key]) {
-                        if (ArrayHelper::isAssociative($body[$key])) {
-                            $body[$key] = [$body[$key]];
-                        }
-                        foreach ($body[$key] as $params) {
-                            if ($val) {
-                                foreach ($val as $c_attr => $p_attr) {
-                                    $params[$c_attr] = $model->{$p_attr};
-                                }
-                            }
-                            $child_model = new $child();
-                            $res = self::createSeveral($child_model, $params);
-                            $result[$key][] = $res;
+        foreach ($model->getRelations() as $child => $val) {
+            $key = strtolower(end(explode("\\", $child)));
+            if (isset($body[$key])) {
+                if (ArrayHelper::isAssociative($body[$key])) {
+                    $body[$key] = [$body[$key]];
+                }
+                foreach ($body[$key] as $params) {
+                    if ($val) {
+                        foreach ($val as $c_attr => $p_attr) {
+                            $params[$c_attr] = $model->{$p_attr};
                         }
                     }
+                    $child_model = new $child();
+                    $res = self::createSeveral($child_model, $params);
+                    $result[$key][] = $res;
                 }
             }
         }

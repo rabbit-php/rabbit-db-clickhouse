@@ -103,42 +103,38 @@ class UpdateExt
     {
         $result = [];
         //关联模型
-        if (isset($model->realation)) {
-            foreach ($model->realation as $key => $val) {
-                if (isset($body[$key])) {
-                    $child = $model->getRelatedRecords($key)->modelClass;
-                    if ($body[$key]) {
-                        if (isset($params['edit']) && $params['edit']) {
+        foreach ($model->getRelations() as $child => $val) {
+            $key = strtolower(end(explode("\\", $child)));
+            if (isset($body[$key])) {
+                if (isset($params['edit']) && $params['edit']) {
+                    $child_model = new $child();
+                    $result[$key] = self::update($child_model, $params);
+                } else {
+                    if (ArrayHelper::isAssociative($body[$key])) {
+                        $params = [$body[$key]];
+                    } else {
+                        $params = $body[$key];
+                    }
+                    $keys = $child::primaryKey();
+                    $exists = self::findExists($child_model, $params);
+                    foreach ($params as $param) {
+                        if ($val) {
+                            /** @var ActiveRecord $child_model */
                             $child_model = new $child();
-                            $result[$key] = self::update($child_model, $params);
-                        } else {
-                            if (ArrayHelper::isAssociative($body[$key])) {
-                                $params = [$body[$key]];
-                            } else {
-                                $params = $body[$key];
+                            $child_id = key($val);
+                            foreach ($val as $c_attr => $p_attr) {
+                                $param[$c_attr] = $model->{$p_attr};
                             }
-                            $keys = $child::primaryKey();
-                            $exists = self::findExists($child_model, $params);
-                            foreach ($params as $param) {
-                                if ($val) {
-                                    /** @var ActiveRecord $child_model */
-                                    $child_model = new $child();
-                                    $child_id = key($val);
-                                    foreach ($val as $c_attr => $p_attr) {
-                                        $param[$c_attr] = $model->{$p_attr};
-                                    }
-                                    $result[$key][] = self::updateSeveral(
-                                        $child_model,
-                                        $param,
-                                        self::checkExist(
-                                            $child_model,
-                                            $param,
-                                            $exists,
-                                            [$child_id => $model[$val[$child_id]]]
-                                        )
-                                    );
-                                }
-                            }
+                            $result[$key][] = self::updateSeveral(
+                                $child_model,
+                                $param,
+                                self::checkExist(
+                                    $child_model,
+                                    $param,
+                                    $exists,
+                                    [$child_id => $model[$val[$child_id]]]
+                                )
+                            );
                         }
                     }
                 }
