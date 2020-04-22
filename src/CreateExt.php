@@ -70,7 +70,8 @@ class CreateExt
         $result = [];
         //关联模型
         foreach ($model->getRelations() as $child => $val) {
-            $key = strtolower(end(explode("\\", $child)));
+            $key = explode("\\", $child);
+            $key = strtolower(end($key));
             if (isset($body[$key])) {
                 if (ArrayHelper::isAssociative($body[$key])) {
                     $body[$key] = [$body[$key]];

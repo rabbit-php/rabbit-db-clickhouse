@@ -196,7 +196,8 @@ class Connection extends \rabbit\db\Connection
             $table = clone $model;
             //关联模型
             foreach ($table->getRelations() as $child => $val) {
-                $key = strtolower(end(explode("\\", $child)));
+                $key = explode("\\", $child);
+                $key = strtolower(end($key));
                 if (isset($item[$key])) {
                     $child_model = new $child();
                     if (!isset($item[$key][0])) {
@@ -287,7 +288,8 @@ class Connection extends \rabbit\db\Connection
             $table = clone $model;
             //关联模型
             foreach ($table->getRelations() as $child => $val) {
-                $key = strtolower(end(explode("\\", $child)));
+                $key = explode("\\", $child);
+                $key = strtolower(end($key));
                 if (isset($item[$key])) {
                     $child_model = new $child();
                     if (!isset($item[$key][0])) {
@@ -355,7 +357,8 @@ class Connection extends \rabbit\db\Connection
         foreach ($array_columns as $item) {
             $table->load($item, '');
             foreach ($table->getRelations() as $child => $val) {
-                $key = strtolower(end(explode("\\", $child)));
+                $key = explode("\\", $child);
+                $key = strtolower(end($key));
                 if (isset($item[$key])) {
                     $child_model = new $child();
                     if ($item[$key]) {

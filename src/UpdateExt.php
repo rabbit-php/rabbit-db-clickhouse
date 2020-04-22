@@ -104,7 +104,8 @@ class UpdateExt
         $result = [];
         //关联模型
         foreach ($model->getRelations() as $child => $val) {
-            $key = strtolower(end(explode("\\", $child)));
+            $key = explode("\\", $child);
+            $key = strtolower(end($key));
             if (isset($body[$key])) {
                 if (isset($params['edit']) && $params['edit']) {
                     $child_model = new $child();
