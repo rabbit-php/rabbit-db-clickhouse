@@ -25,6 +25,7 @@ class MakeCKConnection
         if (!$manager->hasConnection($name)) {
             $conn = [
                 'class' => $class,
+                'name' => $name,
             ];
             if (is_array($config)) {
                 foreach ($config as $key => $value) {
