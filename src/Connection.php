@@ -53,8 +53,10 @@ class Connection extends \rabbit\db\Connection
                     'uri' => [$dsn]
                 ], [], false)
             ], [], false);
+            $this->dsn = $dsn;
         } else {
             $pool = $dsn;
+            $this->dsn = $pool->getConnectionAddress();
         }
         if (!$pool instanceof PoolInterface) {
             throw new InvalidArgumentException("Property pool not ensure PoolInterface");
@@ -141,10 +143,10 @@ class Connection extends \rabbit\db\Connection
      */
     public function getSchema()
     {
-        return $this->_schema = ObjectFactory::createObject([
-            'class' => $this->schemaClass,
-            'db' => $this
-        ]);
+        if ($this->_schema !== null) {
+            return $this->_schema;
+        }
+        return $this->_schema = new $this->schemaClass($this);
     }
 
     public function quoteTableName($name)

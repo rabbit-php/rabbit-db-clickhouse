@@ -30,7 +30,7 @@ class ActiveRecord extends \rabbit\activerecord\ActiveRecord
      */
     public static function find()
     {
-        return ObjectFactory::createObject(ActiveQuery::class, ['modelClass' => get_called_class()]);
+        return ObjectFactory::createObject(ActiveQuery::class, ['modelClass' => get_called_class()], false);
     }
 
     /**
