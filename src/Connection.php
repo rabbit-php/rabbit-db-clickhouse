@@ -230,8 +230,8 @@ class Connection extends \rabbit\db\Connection
                 }
             }
             foreach ($table->toArray() as $name => $value) {
-                $names[] = $this->quoteColumnName($name);
                 if (!$i) {
+                    $names[] = $this->quoteColumnName($name);
                     $updates[] = $this->quoteColumnName($name) . "=values(" . $this->quoteColumnName($name) . ")";
                 }
                 if ($value instanceof Expression) {
