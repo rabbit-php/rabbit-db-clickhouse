@@ -188,4 +188,63 @@ class ActiveQuery extends Query implements ActiveQueryInterface
             }
         }
     }
+
+    /**
+     * @param $alias
+     * @return $this
+     */
+    public function alias($alias)
+    {
+        if (empty($this->from) || count($this->from) < 2) {
+            [$tableName] = $this->getTableNameAndAlias();
+            $this->from = [$alias => $tableName];
+        } else {
+            $tableName = $this->getPrimaryTableName();
+
+            foreach ($this->from as $key => $table) {
+                if ($table === $tableName) {
+                    unset($this->from[$key]);
+                    $this->from[$alias] = $tableName;
+                }
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    private function getTableNameAndAlias()
+    {
+        if (empty($this->from)) {
+            $tableName = $this->getPrimaryTableName();
+        } else {
+            $tableName = '';
+            foreach ($this->from as $alias => $tableName) {
+                if (is_string($alias)) {
+                    return [$tableName, $alias];
+                }
+                break;
+            }
+        }
+
+        if (preg_match('/^(.*?)\s+({{\w+}}|\w+)$/', $tableName, $matches)) {
+            $alias = $matches[2];
+        } else {
+            $alias = $tableName;
+        }
+
+        return [$tableName, $alias];
+    }
+
+    /**
+     * @return string
+     */
+    protected function getPrimaryTableName()
+    {
+        /* @var $modelClass ActiveRecord */
+        $modelClass = $this->modelClass;
+        return $modelClass::tableName();
+    }
 }
