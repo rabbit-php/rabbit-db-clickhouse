@@ -47,8 +47,8 @@ class Connection extends \rabbit\db\Connection
                 'poolConfig' => ObjectFactory::createObject([
                     'class' => PoolProperties::class,
                     'maxWait' => 0,
-                    'minActive' => 100,
-                    'maxActive' => 120,
+                    'minActive' => 30,
+                    'maxActive' => 36,
                     'timeout' => 120,
                     'uri' => [$dsn]
                 ], [], false)
