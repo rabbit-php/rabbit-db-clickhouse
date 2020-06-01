@@ -21,8 +21,6 @@ use rabbit\socket\pool\SocketPool;
  */
 class Connection extends \rabbit\db\Connection
 {
-    use ConnectionTrait;
-
     /**
      * @var string
      */
@@ -125,15 +123,6 @@ class Connection extends \rabbit\db\Connection
         if ($this->getIsActive()) {
             App::warning('Closing DB connection: ' . $this->shortDsn, 'clickhouse');
         }
-    }
-
-    /**
-     * Initializes the DB connection.
-     * This method is invoked right after the DB connection is established.
-     * The default implementation triggers an [[EVENT_AFTER_OPEN]] event.
-     */
-    protected function initConnection()
-    {
     }
 
     /**
