@@ -145,11 +145,7 @@ class Command extends BaseCommand
         }
         $client = $this->db->getTransport();
         $response = $client->post($client->getQueryString(), $rawSql);
-
-        $this->checkResponseStatus($response);
-
-        $data = $this->parseResponse($response);
-        return $data;
+        return $this->parseResponse($response);
     }
 
 
@@ -252,9 +248,6 @@ class Command extends BaseCommand
         try {
             $client = $this->db->getTransport();
             $response = $client->post($client->getQueryString(), $rawSql);
-
-            $this->checkResponseStatus($response);
-
             $data = $this->parseResponse($response);
             $result = $this->prepareResult($data, $method, $fetchMode);
         } catch (\Exception $e) {
@@ -285,8 +278,7 @@ class Command extends BaseCommand
             $client = $this->db->getTransport();
             try {
                 $response = $client->post($client->getQueryString(), $rawSql);
-                $this->checkResponseStatus($response);
-                $result = (string)$response->getBody();
+                $result = $this->parseResponse($response);
             } catch (\Exception $e) {
                 throw new DbException("Download error: " . $e->getMessage());
             }
@@ -319,7 +311,7 @@ class Command extends BaseCommand
                     $dlFileName,
                     file_exists($dlFileName) ? @filesize($dlFileName) : 0
                 );
-                $this->checkResponseStatus($response);
+                $this->parseResponse($response);
 
                 if (file_exists($dlFileName)) {
                     @rename(
@@ -361,17 +353,6 @@ class Command extends BaseCommand
             'statistics' => $this->getStatistics(),
             'extremes' => $this->getExtremes(),
         ];
-    }
-
-    /**
-     * @param ResponseInterface $client
-     * @throws DbException
-     */
-    public function checkResponseStatus(ResponseInterface $client)
-    {
-        if ($client->getStatusCode() !== 200) {
-            throw new DbException((string)$client->getBody());
-        }
     }
 
     /**
@@ -418,6 +399,9 @@ class Command extends BaseCommand
      */
     private function parseResponse(ResponseInterface $client)
     {
+        if ($client->getStatusCode() !== 200) {
+            throw new DbException((string)$client->getBody());
+        }
         $contentType = $client->getHeaderLine(strtolower('Content-Type'));
 
         list($type) = explode(';', $contentType);
@@ -432,7 +416,7 @@ class Command extends BaseCommand
             (string)$client->getBody(),
             true
         ) : (string)$client->getBody();
-        return $result;
+        return $result === "" ? true : $result;
     }
 
     /**
@@ -604,8 +588,7 @@ class Command extends BaseCommand
         $response = $client->post($client->getQueryString([
             'query' => $sql,
         ]), $rows);
-        $body = $response->getBody();
-        return $body;
+        return $this->parseResponse($response);
     }
 
     /**
@@ -631,9 +614,7 @@ class Command extends BaseCommand
         $response = $client->post($client->getQueryString([
             'query' => $sql
         ]), \Co::readFile($file));
-        $this->checkResponseStatus($response);
-        $body = $response->getBody();
-        return $body;
+        return $this->parseResponse($response);
     }
 
     /**

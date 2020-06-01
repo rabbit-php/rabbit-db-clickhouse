@@ -12,7 +12,6 @@ use rabbit\helper\ArrayHelper;
 use rabbit\pool\PoolInterface;
 use rabbit\pool\PoolManager;
 use rabbit\pool\PoolProperties;
-use rabbit\socket\HttpClient;
 use rabbit\socket\pool\SocketPool;
 
 /**
