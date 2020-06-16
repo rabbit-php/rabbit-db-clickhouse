@@ -235,7 +235,7 @@ class Command extends BaseCommand
                     $this->db->dsn,
                     $rawSql,
                 ]);
-                if (false !== $ret = $cache->get($cacheKey)) {
+                if (!empty($ret = $cache->get($cacheKey))) {
                     $result = unserialize($ret);
                     if (is_array($result) && isset($result[0])) {
                         $this->logQuery($rawSql . '; [Query result served from cache]', 'clickhouse');
