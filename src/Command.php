@@ -235,10 +235,12 @@ class Command extends BaseCommand
                     $this->db->dsn,
                     $rawSql,
                 ]);
-                $result = unserialize($cache->get($cacheKey));
-                if (is_array($result) && isset($result[0])) {
-                    $this->logQuery($rawSql . '; [Query result served from cache]', 'clickhouse');
-                    return $this->prepareResult($result[0], $method, $fetchMode);
+                if (false !== $ret = $cache->get($cacheKey)) {
+                    $result = unserialize($ret);
+                    if (is_array($result) && isset($result[0])) {
+                        $this->logQuery($rawSql . '; [Query result served from cache]', 'clickhouse');
+                        return $this->prepareResult($result[0], $method, $fetchMode);
+                    }
                 }
             }
         }
@@ -255,7 +257,7 @@ class Command extends BaseCommand
         }
 
         if (isset($cache, $cacheKey, $info)) {
-            $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug(
+            !$cache->has($cacheKey) && $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug(
                 'Saved query result in cache',
                 'clickhouse'
             );
