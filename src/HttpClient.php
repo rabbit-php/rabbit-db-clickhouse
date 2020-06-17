@@ -96,34 +96,6 @@ class HttpClient extends AbstractConnection
         $this->createConnection();
     }
 
-    public function check(): bool
-    {
-        if (!$this->client->connected) {
-            $this->client->get('/');
-            $this->client->recv();
-        }
-        return $this->client->connected;
-    }
-
-    /**
-     * @param float $timeout
-     * @return mixed|void
-     * @throws NotSupportedException
-     */
-    public function receive(float $timeout = -1)
-    {
-        throw new NotSupportedException('Http client not support ' . __METHOD__);
-    }
-
-    /**
-     * @param bool $defer
-     * @throws NotSupportedException
-     */
-    public function setDefer($defer = true): bool
-    {
-        return $this->client->setDefer($defer);
-    }
-
     /**
      * @param $name
      * @param $arguments

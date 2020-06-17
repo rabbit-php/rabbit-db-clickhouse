@@ -137,16 +137,27 @@ class Connection extends \rabbit\db\Connection
         return $this->_schema = new $this->schemaClass($this);
     }
 
+    /**
+     * @param string $name
+     * @return string
+     */
     public function quoteTableName($name)
     {
         return $name;
     }
 
+    /**
+     * @return string
+     */
     public function getDriverName()
     {
         return 'clickhouse';
     }
 
+    /**
+     * @param string $name
+     * @return string
+     */
     public function quoteColumnName($name)
     {
         return $name;

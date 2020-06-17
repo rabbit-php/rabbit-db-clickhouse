@@ -177,7 +177,7 @@ class Command extends BaseCommand
     public function getRawSql()
     {
         if (empty($this->params)) {
-            return $this->getSql();
+            return $this->_sql;
         }
         $params = [];
         foreach ($this->params as $name => $value) {
@@ -195,10 +195,10 @@ class Command extends BaseCommand
             }
         }
         if (!isset($params[0])) {
-            return strtr($this->getSql(), $params);
+            return strtr($this->_sql, $params);
         }
         $sql = '';
-        foreach (explode('?', $this->getSql()) as $i => $part) {
+        foreach (explode('?', $this->_sql) as $i => $part) {
             $sql .= $part . (isset($params[$i]) ? $params[$i] : '');
         }
         return $sql;
@@ -461,7 +461,7 @@ class Command extends BaseCommand
      */
     public function getData()
     {
-        if ($this->_is_result === null && !empty($this->getSql())) {
+        if ($this->_is_result === null && !empty($this->_sql)) {
             $this->queryInternal(null);
         }
         $this->ensureQueryExecuted();
@@ -483,7 +483,7 @@ class Command extends BaseCommand
      */
     public function getSchemaQuery()
     {
-        $sql = $this->getSql();
+        $sql = $this->_sql;
         $meta = $this->getMeta();
         if (!preg_match('#^SELECT#is', $sql)) {
             throw new DbException('Query was not SELECT type');
