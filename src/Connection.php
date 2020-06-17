@@ -9,6 +9,7 @@ use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\exception\InvalidArgumentException;
 use rabbit\helper\ArrayHelper;
+use rabbit\helper\UrlHelper;
 use rabbit\pool\PoolInterface;
 use rabbit\pool\PoolManager;
 use rabbit\pool\PoolProperties;
@@ -38,6 +39,9 @@ class Connection extends \rabbit\db\Connection
     public function __construct($dsn)
     {
         if (is_string($dsn)) {
+            $urlArr = parse_url($dsn);
+            $urlArr['scheme'] = str_replace('clickhouse', 'http', $urlArr['scheme']);
+            $dsn = UrlHelper::unparse_url($urlArr);
             $pool = ObjectFactory::createObject([
                 'class' => SocketPool::class,
                 'client' => HttpClient::class,
