@@ -45,7 +45,7 @@ class MakeCKConnection
                     $poolConfig['minActive'],
                     $poolConfig['maxActive'],
                     $poolConfig['maxWait'],
-                    $poolConfig['maxReconnect']
+                    $poolConfig['maxRetry']
                 ] = ArrayHelper::getValueByArray(parse_query($urlArr['query']), [
                     'min',
                     'max',
