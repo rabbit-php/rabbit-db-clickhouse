@@ -4,7 +4,6 @@ namespace rabbit\db\clickhouse;
 
 use rabbit\App;
 use rabbit\core\ObjectFactory;
-use rabbit\db\ConnectionTrait;
 use rabbit\db\Exception;
 use rabbit\db\Expression;
 use rabbit\exception\InvalidArgumentException;
@@ -55,11 +54,10 @@ class Connection extends \rabbit\db\Connection
                 ], [], false)
             ], [], false);
             $this->dsn = $dsn;
-        } else {
+        } elseif ($dsn instanceof PoolInterface) {
             $pool = $dsn;
             $this->dsn = $pool->getConnectionAddress();
-        }
-        if (!$pool instanceof PoolInterface) {
+        } else {
             throw new InvalidArgumentException("Property pool not ensure PoolInterface");
         }
         $this->poolKey = $pool->getPoolConfig()->getName();
@@ -70,7 +68,7 @@ class Connection extends \rabbit\db\Connection
      */
     public function getTransport(): HttpClient
     {
-        return PoolManager::getPool($this->poolKey)->getConnection();
+        return PoolManager::getPool($this->poolKey)->get();
     }
 
 
@@ -100,7 +98,7 @@ class Connection extends \rabbit\db\Connection
     {
         $query = 'SELECT 1';
         /** @var HttpClient $client */
-        $client = PoolManager::getPool($this->poolKey)->getConnection();
+        $client = PoolManager::getPool($this->poolKey)->get();
         $result = trim($client->post('/', $query)->getBody()) == '1';
         return $result;
     }
