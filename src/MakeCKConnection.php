@@ -8,6 +8,7 @@ use rabbit\db\click\RetryHandler;
 use rabbit\exception\InvalidConfigException;
 use rabbit\helper\ArrayHelper;
 use rabbit\helper\UrlHelper;
+use rabbit\pool\PoolProperties;
 use function Swlib\Http\parse_query;
 
 class MakeCKConnection
@@ -39,7 +40,7 @@ class MakeCKConnection
             } elseif ($driver === 'click') {
                 $conn['dsn'] = $dsn;
                 $poolConfig = [
-                    'class' => \rabbit\db\pool\PdoPoolConfig::class,
+                    'class' => PoolProperties::class,
                 ];
                 [
                     $poolConfig['minActive'],
