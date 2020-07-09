@@ -1,19 +1,22 @@
 <?php
+declare(strict_types=1);
 
+namespace Rabbit\DB\ClickHouse;
 
-namespace rabbit\db\clickhouse;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\Base\Helper\StringHelper;
+use Throwable;
 
-use rabbit\helper\StringHelper;
-
-/**'
+/**
  * Class BatchInsert
- * @package rabbit\db
+ * @package Rabbit\DB\ClickHouse
  */
-class BatchInsert extends \rabbit\db\BatchInsert
+class BatchInsert extends \Rabbit\DB\BatchInsert
 {
     /**
      * @param array $columns
      * @return bool
+     * @throws Throwable
      */
     public function addColumns(array $columns): bool
     {
@@ -27,10 +30,13 @@ class BatchInsert extends \rabbit\db\BatchInsert
         $this->columns = $columns;
         return true;
     }
+
     /**
      * @param array $rows
      * @param bool $checkFields
      * @return bool
+     * @throws Throwable
+     * @throws InvalidArgumentException
      */
     public function addRow(array $rows, bool $checkFields = true): bool
     {

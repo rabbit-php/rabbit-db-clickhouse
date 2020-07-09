@@ -1,8 +1,11 @@
 <?php
+declare(strict_types=1);
 
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
 
-use rabbit\core\BaseObject;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\Base\Exception\NotSupportedException;
+use Throwable;
 
 /**
  * BatchQueryResult represents a batch query from which you can retrieve data in batches.
@@ -23,33 +26,12 @@ use rabbit\core\BaseObject;
  * Class BatchQueryResult
  * @package rabbit\db\clickhouse
  */
-class BatchQueryResult extends BaseObject implements \Iterator
+class BatchQueryResult extends \Rabbit\DB\BatchQueryResult implements \Iterator
 {
-    /**
-     * @var Connection the DB connection to be used when performing batch query.
-     * If null, the "db" application component will be used.
-     */
-    public $db;
-    /**
-     * @var Query the query object associated with this batch query.
-     * Do not modify this property directly unless after [[reset()]] is called explicitly.
-     */
-    public $query;
-    /**
-     * @var int the number of rows to be returned in each batch.
-     */
-    public $batchSize = 100;
-
-    /**
-     * @var bool whether to return a single row during each iteration.
-     * If false, a whole batch of rows will be returned in each iteration.
-     */
-    public $each = false;
-
     /**
      * @var array the data retrieved in the current batch
      */
-    private $batch;
+    private ?array $batch = null;
     /**
      * @var mixed the value for the current iteration
      */
@@ -59,7 +41,7 @@ class BatchQueryResult extends BaseObject implements \Iterator
      */
     private $key;
 
-    private $index = 0;
+    private int $index = 0;
 
     /**
      * Destructor.
@@ -73,7 +55,7 @@ class BatchQueryResult extends BaseObject implements \Iterator
      * Resets the batch query.
      * This method will clean up the existing batch query so that a new batch query can be performed.
      */
-    public function reset()
+    public function reset(): void
     {
         $this->batch = null;
         $this->value = null;
@@ -120,6 +102,9 @@ class BatchQueryResult extends BaseObject implements \Iterator
     /**
      * Fetches the next batch of data.
      * @return array the data fetched
+     * @throws InvalidArgumentException
+     * @throws NotSupportedException
+     * @throws Throwable
      */
     protected function fetchData()
     {

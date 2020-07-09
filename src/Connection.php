@@ -1,78 +1,99 @@
 <?php
+declare(strict_types=1);
 
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
 
-use rabbit\App;
-use rabbit\core\ObjectFactory;
-use rabbit\db\Exception;
-use rabbit\db\Expression;
-use rabbit\exception\InvalidArgumentException;
-use rabbit\helper\ArrayHelper;
-use rabbit\helper\UrlHelper;
-use rabbit\pool\PoolInterface;
-use rabbit\pool\PoolManager;
-use rabbit\pool\PoolProperties;
-use rabbit\socket\pool\SocketPool;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\Base\App;
+use Rabbit\Base\Helper\ArrayHelper;
+use Rabbit\DB\Exception;
+use Rabbit\DB\QueryBuilder;
+use Rabbit\DB\Schema;
+use Rabbit\HttpClient\Client;
+use Throwable;
 
 /**
  * Class Connection
- * @package rabbit\db\clickhouse
+ * @package Rabbit\DB\ClickHouse
  */
-class Connection extends \rabbit\db\Connection
+class Connection extends \Rabbit\DB\Connection
 {
     /**
      * @var string
      */
-    protected $commandClass = Command::class;
-    protected $schemaClass = Schema::class;
+    protected string $commandClass = Command::class;
+    protected string $schemaClass = Schema::class;
 
-    public $schemaMap = [
+    public array $schemaMap = [
         'clickhouse' => Schema::class
     ];
+    /** @var Client */
+    protected Client $client;
+    /** @var string */
+    public string $database = 'default';
+    /** @var array */
+    protected array $query = [];
 
     /**
      * Connection constructor.
      * @param string $dsn
-     * @param array $options
+     * @throws Exception
      */
-    public function __construct($dsn)
+    public function __construct(string $dsn)
     {
-        if (is_string($dsn)) {
-            $urlArr = parse_url($dsn);
-            $urlArr['scheme'] = str_replace('clickhouse', 'http', $urlArr['scheme']);
-            $dsn = UrlHelper::unparse_url($urlArr);
-            $pool = ObjectFactory::createObject([
-                'class' => SocketPool::class,
-                'client' => HttpClient::class,
-                'poolConfig' => ObjectFactory::createObject([
-                    'class' => PoolProperties::class,
-                    'maxWait' => 0,
-                    'minActive' => 30,
-                    'maxActive' => 36,
-                    'timeout' => 120,
-                    'uri' => [$dsn]
-                ], [], false)
-            ], [], false);
-            $this->dsn = $dsn;
-        } elseif ($dsn instanceof PoolInterface) {
-            $pool = $dsn;
-            $this->dsn = $pool->getConnectionAddress();
-        } else {
-            throw new InvalidArgumentException("Property pool not ensure PoolInterface");
-        }
-        $this->poolKey = $pool->getPoolConfig()->getName();
+        parent::__construct($dsn);
+        $this->createPdoInstance();
     }
 
     /**
-     * @return HttpClient
+     * @return void
+     * @throws Exception
      */
-    public function getTransport(): HttpClient
+    public function createPdoInstance()
     {
-        return PoolManager::getPool($this->poolKey)->get();
+        $parsed = $this->parseDsn;
+        if (!in_array($parsed['scheme'], ['clickhouse', 'clickhouses'])) {
+            throw new Exception("clickhouse only support scheme clickhouse & clickhouses");
+        }
+
+        if (!isset($parsed['path'])) {
+            $parsed['path'] = '/';
+        }
+
+        isset($parsed['query']) ? parse_str($parsed['query'], $query) : $query = [];
+        $query['database'] = $this->database = (string)ArrayHelper::remove($query, 'dbname', 'default');
+        $this->query = $query;
+        $size = ArrayHelper::remove($query, 'size', true);
+        $retry = ArrayHelper::remove($query, 'retry', 0);
+        $timeout = ArrayHelper::remove($query, 'timeout', 5);
+
+        $parsed['scheme'] = str_replace('clickhouse', 'http', $parsed['scheme']);
+        $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : '';
+        $host = isset($parsed['host']) ? $parsed['host'] : '';
+        $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+        $path = isset($parsed['path']) ? $parsed['path'] : '';
+
+        $options = [
+            'uri' => "$scheme$host$port$path",
+            'use_pool' => $size,
+            'retry_time' => $retry,
+            'timeout' => $timeout
+        ];
+        isset($parsed['user']) && $options['auth']['username'] = $parsed['user'];
+        isset($parsed['pass']) && $options['auth']['password'] = $parsed['pass'];
+        $this->client = new Client($options);
+    }
+
+    /**
+     * @return Client
+     */
+    public function getConn(): Client
+    {
+        return $this->client;
     }
 
 
-    public function getIsActive()
+    public function getIsActive(): bool
     {
         return false;
     }
@@ -80,33 +101,23 @@ class Connection extends \rabbit\db\Connection
     /**
      * @param string $str
      * @return string
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
+     * @throws InvalidArgumentException
+     * @throws Throwable
      */
-    public function quoteValue($str)
+    public function quoteValue(string $str): string
     {
         return $this->getSchema()->quoteValue($str);
     }
 
-    public function quoteSql($sql)
+    public function quoteSql(string $sql): string
     {
         return $sql;
     }
 
-
-    public function ping()
-    {
-        $query = 'SELECT 1';
-        /** @var HttpClient $client */
-        $client = PoolManager::getPool($this->poolKey)->get();
-        $result = trim($client->post('/', $query)->getBody()) == '1';
-        return $result;
-    }
-
-
     /**
      * Closes the connection when this component is being serialized.
      * @return array
+     * @throws Throwable
      */
     public function __sleep()
     {
@@ -116,10 +127,9 @@ class Connection extends \rabbit\db\Connection
 
 
     /**
-     * Closes the currently active DB connection.
-     * It does nothing if the connection is already closed.
+     * @throws Throwable
      */
-    public function close()
+    public function close(): void
     {
         if ($this->getIsActive()) {
             App::warning('Closing DB connection: ' . $this->shortDsn, 'clickhouse');
@@ -127,11 +137,9 @@ class Connection extends \rabbit\db\Connection
     }
 
     /**
-     * @return mixed|\rabbit\db\Schema
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
+     * @return Schema
      */
-    public function getSchema()
+    public function getSchema(): Schema
     {
         if ($this->_schema !== null) {
             return $this->_schema;
@@ -143,248 +151,34 @@ class Connection extends \rabbit\db\Connection
      * @param string $name
      * @return string
      */
-    public function quoteTableName($name)
+    public function quoteTableName(string $name): string
     {
         return $name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getDriverName()
-    {
-        return 'clickhouse';
     }
 
     /**
      * @param string $name
      * @return string
      */
-    public function quoteColumnName($name)
+    public function quoteColumnName(string $name): string
     {
         return $name;
     }
 
     /**
-     * @return \rabbit\db\QueryBuilder
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
+     * @return QueryBuilder
      */
-    public function getQueryBuilder()
+    public function getQueryBuilder(): QueryBuilder
     {
         return $this->getSchema()->getQueryBuilder();
     }
 
     /**
-     * @param ActiveRecord $model
-     * @param array $array_columns
-     * @return int
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
-     * @throws \rabbit\db\Exception
+     * @param array $query
+     * @return string
      */
-    public function insertSeveral(ActiveRecord $model, array $array_columns): int
+    public function getQueryString(array $query = []): string
     {
-        $sql = '';
-        $params = array();
-        $i = 0;
-        if (ArrayHelper::isAssociative($array_columns)) {
-            $array_columns = [$array_columns];
-        }
-        $keys = $model::primaryKey();
-        if ($keys && !is_array($keys)) {
-            $keys = [$keys];
-        }
-        foreach ($array_columns as $item) {
-            $table = clone $model;
-            //关联模型
-            foreach ($table->getRelations() as $child => $val) {
-                $key = explode("\\", $child);
-                $key = strtolower(end($key));
-                if (isset($item[$key])) {
-                    $child_model = new $child();
-                    if (!isset($item[$key][0])) {
-                        $item[$key] = [$item[$key]];
-                    }
-                    foreach ($val as $c_attr => $p_attr) {
-                        foreach ($item[$key] as $index => $params) {
-                            $item[$key][$index][$c_attr] = $table->{$p_attr};
-                        }
-                    }
-                    if ($this->updateSeveral($child_model, $item[$key]) === false) {
-                        return false;
-                    }
-                }
-            }
-            $names = array();
-            $placeholders = array();
-            $table->load($item, '');
-            $table->isNewRecord = false;
-            if (!$table->validate()) {
-                throw new Exception(implode(BREAKS, $table->getFirstErrors()));
-            }
-            if ($keys) {
-                foreach ($keys as $key) {
-                    if (isset($item[$key])) {
-                        $table->$key = $item[$key];
-                    }
-                }
-            }
-            foreach ($table->toArray() as $name => $value) {
-                if (!$i) {
-                    $names[] = $this->quoteColumnName($name);
-                    $updates[] = $this->quoteColumnName($name) . "=values(" . $this->quoteColumnName($name) . ")";
-                }
-                if ($value instanceof Expression) {
-                    $placeholders[] = $value->expression;
-                    foreach ($value->params as $n => $v) {
-                        $params[$n] = $v;
-                    }
-                } else {
-                    $placeholders[] = ':' . $name . $i;
-                    $params[':' . $name . $i] = $value;
-                }
-            }
-            if (!$i) {
-                $sql = 'INSERT INTO ' . $this->quoteTableName($table::tableName())
-                    . ' (' . implode(', ', $names) . ') VALUES ('
-                    . implode(', ', $placeholders) . ')';
-            } else {
-                $sql .= ',(' . implode(', ', $placeholders) . ')';
-            }
-            $i++;
-        }
-        $table::getDb()->createCommand($sql, $params)->execute();
-        return count($array_columns);
+        return '?' . http_build_query(array_merge($this->query, $query));
     }
-
-    /**
-     * @param ActiveRecord $model
-     * @param array $array_columns
-     * @return int
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
-     * @throws \rabbit\db\Exception
-     */
-    public function updateSeveral(ActiveRecord $model, array $array_columns): int
-    {
-        $params = array();
-        if (ArrayHelper::isAssociative($array_columns)) {
-            $array_columns = [$array_columns];
-        }
-        $keys = $model::primaryKey();
-        if (empty($keys)) {
-            throw new Exception("The table " . $model::tableName() . ' must have one or more primarykey to call updateSeveral function!');
-        }
-        if (!is_array($keys)) {
-            $keys = [$keys];
-        }
-        $sql = 'ALTER TABLE ' . $this->quoteTableName($model::tableName()) . ' update ';
-        $columns = array_keys(current($array_columns));
-        $sets = [];
-        $setQ = [];
-        $bindings = [];
-        $whereIn = [];
-        $whereVal = [];
-        $i = 0;
-        foreach ($array_columns as $item) {
-            $table = clone $model;
-            //关联模型
-            foreach ($table->getRelations() as $child => $val) {
-                $key = explode("\\", $child);
-                $key = strtolower(end($key));
-                if (isset($item[$key])) {
-                    $child_model = new $child();
-                    if (!isset($item[$key][0])) {
-                        $item[$key] = [$item[$key]];
-                    }
-                    foreach ($val as $c_attr => $p_attr) {
-                        foreach ($item[$key] as $index => $param) {
-                            $item[$key][$index][$c_attr] = $table->{$p_attr};
-                        }
-                    }
-                    if ($this->updateSeveral($child_model, $item[$key]) === false) {
-                        return false;
-                    }
-                }
-            }
-            $table->load($item, '');
-            if (!$table->validate($columns)) {
-                throw new Exception(implode(BREAKS, $table->getFirstErrors()));
-            }
-            foreach ($item as $name => $value) {
-                if (in_array($name, $keys)) {
-                    $whereIn[$name][] = '?';
-                    $whereVal[] = $value;
-                } else {
-                    $i === 0 && $sets[$name] = " `$name`=multiIf(";
-                    foreach ($keys as $key) {
-                        $bindings[] = $item[$key];
-                        $sets[$name] .= "`$key`==? and ";
-                    }
-                    $sets[$name] = rtrim($sets[$name], ' and ') . ',?,';
-                    $bindings[] = $value;
-                }
-            }
-            $i++;
-        }
-        foreach ($sets as $name => $value) {
-            $sql .= $value . "`$name`)";
-        }
-        $sql .= " where ";
-        foreach ($keys as $key) {
-            $sql .= " `$key` in (" . implode(',', $whereIn[$key]) . ') and ';
-        }
-        $sql = rtrim($sql, "and ");
-        $params = array_merge($bindings, $whereVal);
-        $table::getDb()->createCommand($sql, $params)->execute();
-        return count($array_columns);
-    }
-
-    /**
-     * @param ActiveRecord $table
-     * @param array $array_columns
-     * @return int
-     * @throws \rabbit\db\Exception
-     */
-    public function deleteSeveral(ActiveRecord $table, array $array_columns): int
-    {
-        $keys = $table::primaryKey();
-        if (!is_array($keys)) {
-            $keys = [$keys];
-        }
-        $condition = [];
-        if (ArrayHelper::isAssociative($array_columns)) {
-            $array_columns = [$array_columns];
-        }
-        foreach ($array_columns as $item) {
-            $table->load($item, '');
-            foreach ($table->getRelations() as $child => $val) {
-                $key = explode("\\", $child);
-                $key = strtolower(end($key));
-                if (isset($item[$key])) {
-                    $child_model = new $child();
-                    if ($item[$key]) {
-                        if ($this->deleteSeveral($child_model, $item[$key]) === false) {
-                            return false;
-                        }
-                    }
-                }
-            }
-            if ($keys) {
-                foreach ($keys as $key) {
-                    if (isset($item[$key])) {
-                        $condition[$key][] = $item[$key];
-                    }
-                }
-            }
-        }
-        if ($condition) {
-            $table->deleteAll($condition);
-            return count($array_columns);
-        }
-        return 0;
-    }
-
-
 }

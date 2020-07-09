@@ -1,14 +1,20 @@
 <?php
+declare(strict_types=1);
 
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
 
-use rabbit\core\ObjectFactory;
-use rabbit\db\Exception as DbException;
-use rabbit\db\Query as BaseQuery;
+use DI\DependencyException;
+use DI\NotFoundException;
+use Rabbit\DB\BatchQueryResult;
+use Rabbit\DB\Command;
+use Rabbit\DB\ConnectionInterface;
+use Rabbit\DB\Exception;
+use Rabbit\DB\Expression;
+use Throwable;
 
 /**
  * Class Query
- * @package rabbit\db\clickhouse
+ * @package Rabbit\DB\ClickHouse
  * @method getCountAll() int
  * @method getTotals() array
  * @method getData() array
@@ -16,26 +22,24 @@ use rabbit\db\Query as BaseQuery;
  * @method getRows() int
  * @method getMeta() array
  */
-class Query extends BaseQuery
+class Query extends \Rabbit\DB\Query
 {
 
     /** @var Command */
-    private $_command;
+    private ?Command $command = null;
     /** @var bool */
-    private $_withTotals = false;
-
-    /**
-     * @var null
-     */
-    public $sample = null;
+    private bool $withTotals = false;
+    /** @var float|null */
+    public ?float $sample = null;
     public $preWhere = null;
-    public $limitBy = null;
+    public ?array $limitBy = null;
 
     /**
-     * @param null $db
-     * @return Command|\rabbit\db\Command
+     * @param ConnectionInterface|null $db
+     * @return Command
+     * @throws Throwable
      */
-    public function createCommand($db = null)
+    public function createCommand(ConnectionInterface $db = null): Command
     {
         if ($db === null) {
             $db = getDI('clickhouse')->get();
@@ -43,8 +47,8 @@ class Query extends BaseQuery
         list($sql, $params) = $db->getQueryBuilder()->build($this);
 
 
-        $this->_command = $db->createCommand($sql, $params);
-        return $this->_command;
+        $this->command = $db->createCommand($sql, $params);
+        return $this->command;
     }
 
     /**
@@ -52,7 +56,7 @@ class Query extends BaseQuery
      * @param $n float|int  set value 0.1 .. 1 percent or int 1 .. 1m value
      * @return $this the query object itself
      */
-    public function sample($n)
+    public function sample(float $n): self
     {
         $this->sample = $n;
         return $this;
@@ -75,7 +79,7 @@ class Query extends BaseQuery
      *** see andWhere()
      *** see orWhere()
      */
-    public function preWhere($condition, $params = [])
+    public function preWhere($condition, array $params = []): self
     {
         $this->preWhere = $condition;
         $this->addParams($params);
@@ -93,7 +97,7 @@ class Query extends BaseQuery
      * @see preWhere()
      * @see orPreWhere()
      */
-    public function andPreWhere($condition, $params = [])
+    public function andPreWhere($condition, array $params = []): self
     {
         if ($this->preWhere === null) {
             $this->preWhere = $condition;
@@ -114,7 +118,7 @@ class Query extends BaseQuery
      * @see preWhere()
      * @see andPreWhere()
      */
-    public function orPreWhere($condition, $params = [])
+    public function orPreWhere($condition, array $params = []): self
     {
         if ($this->preWhere === null) {
             $this->preWhere = $condition;
@@ -126,9 +130,11 @@ class Query extends BaseQuery
     }
 
     /**
+     * @param int $n
+     * @param array $columns
      * @return $this
      */
-    public function limitBy($n, $columns)
+    public function limitBy(int $n, array $columns): self
     {
         $this->limitBy = [$n, $columns];
         return $this;
@@ -137,28 +143,28 @@ class Query extends BaseQuery
     /**
      * @return $this
      */
-    public function withTotals()
+    public function withTotals(): self
     {
-        $this->_withTotals = true;
+        $this->withTotals = true;
         return $this;
     }
 
     /**
      * @return bool
      */
-    public function hasWithTotals()
+    public function hasWithTotals(): bool
     {
-        return $this->_withTotals;
+        return $this->withTotals;
     }
 
     /**
      * check is first method executed
-     * @throws DbException
+     * @throws Exception
      */
     private function ensureQueryExecuted()
     {
-        if (null === $this->_command) {
-            throw new DbException('Query was not executed yet');
+        if (null === $this->command) {
+            throw new Exception('Query was not executed yet');
         }
     }
 
@@ -166,14 +172,20 @@ class Query extends BaseQuery
      * call method Command::{$name}
      * @param $name
      * @return mixed
+     * @throws Exception
      */
-    private function callSpecialCommand($name)
+    private function callSpecialCommand(string $name)
     {
         $this->ensureQueryExecuted();
-        return $this->_command->{$name}();
+        return $this->command->{$name}();
     }
 
-
+    /**
+     * @param $name
+     * @param $params
+     * @return mixed|Query
+     * @throws Exception
+     */
     public function __call($name, $params)
     {
         $methods = ['getmeta', 'getdata', 'getextremes', 'gettotals', 'getcountall', 'getrows', 'download'];
@@ -189,7 +201,7 @@ class Query extends BaseQuery
      */
     public function __clone()
     {
-        $this->_command = null;
+        $this->command = null;
     }
 
     /**
@@ -209,13 +221,15 @@ class Query extends BaseQuery
      * ```
      *
      * @param int $batchSize the number of records to be fetched in each batch.
-     * @param Connection $db the database connection. If not set, the "db" application component will be used.
+     * @param ConnectionInterface $db the database connection. If not set, the "db" application component will be used.
      * @return BatchQueryResult the batch query result. It implements the [[\Iterator]] interface
      * and can be traversed to retrieve the data in batches.
+     * @throws DependencyException
+     * @throws NotFoundException
      */
-    public function batch($batchSize = 100, $db = null)
+    public function batch(int $batchSize = 100, ConnectionInterface $db = null): BatchQueryResult
     {
-        return ObjectFactory::createObject([
+        return create([
             'class' => BatchQueryResult::class,
             'query' => $this,
             'batchSize' => $batchSize,
@@ -237,13 +251,15 @@ class Query extends BaseQuery
      * ```
      *
      * @param int $batchSize the number of records to be fetched in each batch.
-     * @param Connection $db the database connection. If not set, the "db" application component will be used.
+     * @param ConnectionInterface $db the database connection. If not set, the "db" application component will be used.
      * @return BatchQueryResult the batch query result. It implements the [[\Iterator]] interface
      * and can be traversed to retrieve the data in batches.
+     * @throws DependencyException
+     * @throws NotFoundException
      */
-    public function each($batchSize = 100, $db = null)
+    public function each(int $batchSize = 100, ConnectionInterface $db = null): BatchQueryResult
     {
-        return ObjectFactory::createObject([
+        return create([
             'class' => BatchQueryResult::class,
             'query' => $this,
             'batchSize' => $batchSize,

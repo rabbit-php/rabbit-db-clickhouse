@@ -1,21 +1,24 @@
 <?php
+declare(strict_types=1);
 
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
 
+use Co\System;
 use Psr\Http\Message\ResponseInterface;
 use Psr\SimpleCache\CacheInterface;
-use rabbit\App;
-use rabbit\db\Command as BaseCommand;
-use rabbit\db\Exception as DbException;
-use rabbit\helper\ArrayHelper;
-use rabbit\socket\HttpClient;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\Base\Core\Timer;
+use Rabbit\Base\Exception\NotSupportedException;
+use Rabbit\Base\Helper\ArrayHelper;
+use Rabbit\DB\DataReader;
+use Rabbit\DB\Exception;
+use Throwable;
 
 /**
  * Class Command
- * @package rabbit\db\clickhouse
- * @property $db \rabbit\db\clickhouse\Connection
+ * @package Rabbit\DB\ClickHouse
  */
-class Command extends BaseCommand
+class Command extends \Rabbit\DB\Command
 {
     const FETCH = 'fetch';
     const FETCH_ALL = 'fetchAll';
@@ -25,78 +28,51 @@ class Command extends BaseCommand
     const FETCH_MODE_TOTAL = 7;
     const FETCH_MODE_ALL = 8;
 
-    /** @var int fetch type result */
-    public $fetchMode = 0;
-
-    protected $_format = null;
-
-    protected $_is_result;
-
-    protected $_options = [];
-
-    /**
-     * @var
-     */
-    protected $_meta;
-    /**
-     * @var
-     */
-    protected $_data;
-    /**
-     * @var
-     */
-    protected $_totals;
-    /**
-     * @var array
-     */
-    protected $_extremes;
-    /**
-     * @var int
-     */
-    protected $_rows;
-    /**
-     * @var array
-     */
-    protected $_statistics;
-    /**
-     * @var
-     */
-    protected $_rows_before_limit_at_least;
-
+    public int $fetchMode = 0;
+    protected ?string $format = null;
+    protected bool $isResult = false;
+    protected array $options = [];
+    protected ?array $meta = null;
+    protected ?array $data = null;
+    protected int $totals = 0;
+    protected array $extremes = [];
+    protected int $rows = 0;
+    protected array $statistics = [];
+    protected int $rows_before_limit_at_least = 0;
 
     /**
-     * @return null
+     * @return string
      */
-    public function getFormat()
+    public function getFormat(): ?string
     {
-        return $this->_format;
+        return $this->format;
     }
 
     /**
      * @param string|null $format
      * @return $this
      */
-    public function setFormat(?string $format)
+    public function setFormat(?string $format): self
     {
-        $this->_format = $format;
+        $this->format = $format;
         return $this;
     }
 
     /**
      * @return array
      */
-    public function getOptions()
+    public function getOptions(): array
     {
-        return $this->_options;
+        return $this->options;
     }
 
     /**
      * @param array $options
      * @return $this
      */
-    public function setOptions($options)
+    public function setOptions(array $options): self
     {
-        $this->_options = $options;
+        $this->options = $options;
         return $this;
     }
 
@@ -106,23 +82,22 @@ class Command extends BaseCommand
      * @param array $options additional options
      * @return $this self reference.
      */
-    public function addOptions(array $options)
+    public function addOptions(array $options): self
     {
         foreach ($options as $key => $value) {
-            if (is_array($value) && isset($this->_options[$key])) {
-                $value = ArrayHelper::merge($this->_options[$key], $value);
+            if (is_array($value) && isset($this->options[$key])) {
+                $value = ArrayHelper::merge($this->options[$key], $value);
             }
-            $this->_options[$key] = $value;
+            $this->options[$key] = $value;
         }
         return $this;
     }
 
-    public function bindValues($values)
+    public function bindValues(array $values): self
     {
         if (empty($values)) {
             return $this;
         }
-        //$schema = $this->db->getSchema();
         foreach ($values as $name => $value) {
             if (is_array($value)) {
                 $this->_pendingParams[$name] = $value;
@@ -136,43 +111,50 @@ class Command extends BaseCommand
     }
 
 
-    public function execute()
+    public function execute(): int
     {
         $rawSql = $this->getRawSql();
 
         $this->logQuery($rawSql, 'clickhouse');
-        $client = $this->db->getTransport();
+        $client = $this->db->getConn();
         $response = $client->post($client->getQueryString(), $rawSql);
-        return $this->parseResponse($response);
+        if ($this->parseResponse($response) === '') {
+            return 1;
+        }
+        return 0;
     }
 
 
     /**
-     * @return array|mixed|null
-     * @throws DbException
-     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @return array|null
+     * @throws InvalidArgumentException
+     * @throws Throwable
      */
-    public function queryColumn()
+    public function queryColumn(): ?array
     {
         return $this->queryInternal(self::FETCH_COLUMN);
     }
 
     /**
-     * @return array|false|int|mixed|string|null
-     * @throws DbException
-     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @return string|null
+     * @throws InvalidArgumentException
+     * @throws Throwable
      */
-    public function queryScalar()
+    public function queryScalar(): ?string
     {
         $result = $this->queryInternal(self::FETCH_SCALAR, 0);
         if (is_array($result)) {
             return current($result);
-        } else {
-            return $result;
+        } elseif ($result !== null && $result !== false) {
+            return (string)$result;
         }
+        return null;
     }
 
-    public function getRawSql()
+    /**
+     * @return string
+     */
+    public function getRawSql(): string
     {
         if (empty($this->params)) {
             return $this->_sql;
@@ -204,12 +186,12 @@ class Command extends BaseCommand
 
     /**
      * @param string $method
-     * @param null $fetchMode
+     * @param int $fetchMode
      * @return array|mixed|null
-     * @throws DbException
-     * @throws \Psr\SimpleCache\InvalidArgumentException
+     * @throws InvalidArgumentException
+     * @throws Throwable
      */
-    protected function queryInternal($method, $fetchMode = null)
+    protected function queryInternal(?string $method, int $fetchMode = null)
     {
         $rawSql = $this->getRawSql();
         if ($method == self::FETCH) {
@@ -246,12 +228,12 @@ class Command extends BaseCommand
         $this->logQuery($rawSql);
 
         try {
-            $client = $this->db->getTransport();
+            $client = $this->db->getConn();
             $response = $client->post($client->getQueryString(), $rawSql);
             $data = $this->parseResponse($response);
             $result = $this->prepareResult($data, $method, $fetchMode);
-        } catch (\Exception $e) {
-            throw new DbException("Query error: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            throw new Exception("Query error: " . $e->getMessage());
         }
 
         if (isset($cache, $cacheKey, $info)) {
@@ -267,7 +249,7 @@ class Command extends BaseCommand
     /**
      * @param string|null $path
      * @return string
-     * @throws DbException
+     * @throws Throwable
      */
     public function download(?string $path = null): string
     {
@@ -275,12 +257,12 @@ class Command extends BaseCommand
         $rawSql .= ' FORMAT CSV';
         $this->logQuery($rawSql, 'clickhouse');
         if ($path === null) {
-            $client = $this->db->getTransport();
+            $client = $this->db->getConn();
             try {
                 $response = $client->post($client->getQueryString(), $rawSql);
                 $result = $this->parseResponse($response);
-            } catch (\Exception $e) {
-                throw new DbException("Download error: " . $e->getMessage());
+            } catch (\Throwable $e) {
+                throw new Exception("Download error: " . $e->getMessage());
             }
         } else {
             $fileName = [
@@ -303,14 +285,14 @@ class Command extends BaseCommand
             }
 
             try {
-                $client = $this->db->getTransport();
-                $client->setMethod('POST');
-                $client->setData($rawSql);
-                $response = $client->download(
-                    $client->getQueryString(),
-                    $dlFileName,
-                    file_exists($dlFileName) ? @filesize($dlFileName) : 0
-                );
+                $client = $this->db->getConn();
+                $response = $client->request([
+                    'uri' => $this->db->getQueryString(),
+                    'method' => 'POST',
+                    'data' => $rawSql,
+                    'download_dir' => $dlFileName,
+                    'download_offset' => file_exists($dlFileName) ? @filesize($dlFileName) : 0
+                ]);
                 $this->parseResponse($response);
 
                 if (file_exists($dlFileName)) {
@@ -319,19 +301,19 @@ class Command extends BaseCommand
                         $fileName
                     );
                 } else {
-                    throw new DbException("{$rawSql} download failed!");
+                    throw new Exception("{$rawSql} download failed!");
                 }
                 if ($this->queryCacheDuration > 0) {
-                    \Swoole\Timer::after($this->queryCacheDuration * 1000, function (string $path) {
-                        @unlink($path);
-                    }, $fileName);
+                    Timer::addAfterTimer('download.' . $fileName, $this->queryCacheDuration * 1000, function () use ($fileName) {
+                        @unlink($fileName);
+                    });
                 }
                 $result = $fileName;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 if (file_exists($dlFileName)) {
                     @unlink($dlFileName);
                 }
-                throw new DbException("Download error: " . $e->getMessage());
+                throw new Exception("Download error: " . $e->getMessage());
             }
         }
 
@@ -341,8 +323,9 @@ class Command extends BaseCommand
     /**
      * @param $result
      * @return array
+     * @throws Exception
      */
-    protected function getStatementData($result)
+    protected function getStatementData(array $result): array
     {
         return [
             'meta' => $this->getMeta(),
@@ -356,12 +339,13 @@ class Command extends BaseCommand
     }
 
     /**
-     * @param $result
-     * @param null $method
-     * @param null $fetchMode
+     * @param array $result
+     * @param string $method
+     * @param int $fetchMode
      * @return array|mixed|null
+     * @throws Exception
      */
-    private function prepareResult($result, $method = null, $fetchMode = null)
+    private function prepareResult(array $result, string $method = null, int $fetchMode = null)
     {
         $this->prepareResponseData($result);
         $result = ArrayHelper::getValue($result, 'data', []);
@@ -396,11 +380,12 @@ class Command extends BaseCommand
     /**
      * @param ResponseInterface $client
      * @return mixed|string
+     * @throws Exception
      */
     private function parseResponse(ResponseInterface $client)
     {
         if ($client->getStatusCode() !== 200) {
-            throw new DbException((string)$client->getBody());
+            throw new Exception((string)$client->getBody());
         }
         $contentType = $client->getHeaderLine(strtolower('Content-Type'));
 
@@ -422,48 +407,51 @@ class Command extends BaseCommand
     /**
      * @param $result
      */
-    private function prepareResponseData($result)
+    private function prepareResponseData(array $result): void
     {
-        if (!is_array($result)) {
-            return;
-        }
-        $this->_is_result = true;
+        $this->isResult = true;
         foreach (['meta', 'data', 'totals', 'extremes', 'rows', 'rows_before_limit_at_least', 'statistics'] as $key) {
             if (isset($result[$key])) {
-                $attr = "_" . $key;
-                $this->{$attr} = $result[$key];
+                $this->{$key} = $result[$key];
             }
         }
     }
 
+    /**
+     * @throws Exception
+     */
     private function ensureQueryExecuted()
     {
-        if (true !== $this->_is_result) {
-            throw new DbException('Query was not executed yet');
+        if (true !== $this->isResult) {
+            throw new Exception('Query was not executed yet');
         }
     }
 
     /**
      * get meta columns information
      * @return mixed
+     * @throws Exception
      */
     public function getMeta()
     {
         $this->ensureQueryExecuted();
-        return $this->_meta;
+        return $this->meta;
     }
 
     /**
      * get all data result
      * @return mixed|array
+     * @throws Exception
+     * @throws InvalidArgumentException
+     * @throws Throwable
      */
     public function getData()
     {
-        if ($this->_is_result === null && !empty($this->_sql)) {
+        if ($this->isResult === null && !empty($this->_sql)) {
             $this->queryInternal(null);
         }
         $this->ensureQueryExecuted();
-        return $this->_data;
+        return $this->data;
     }
 
     /**
@@ -477,14 +465,14 @@ class Command extends BaseCommand
      * ```
      *
      * @return string
-     * @throws DbException
+     * @throws Exception
      */
-    public function getSchemaQuery()
+    public function getSchemaQuery(): string
     {
         $sql = $this->_sql;
         $meta = $this->getMeta();
         if (!preg_match('#^SELECT#is', $sql)) {
-            throw new DbException('Query was not SELECT type');
+            throw new Exception('Query was not SELECT type');
         }
         $table = "CREATE TABLE x (\n    ";
         $columns = [];
@@ -498,51 +486,54 @@ class Command extends BaseCommand
     }
 
     /**
-     * @return mixed
+     * @return int
+     * @throws Exception
      */
-    public function getTotals()
+    public function getTotals(): int
     {
         $this->ensureQueryExecuted();
-        return $this->_totals;
+        return $this->totals;
     }
 
 
     /**
-     * @return mixed
+     * @return array
+     * @throws Exception
      */
-    public function getExtremes()
+    public function getExtremes(): array
     {
         $this->ensureQueryExecuted();
-        return $this->_extremes;
+        return $this->extremes;
     }
 
     /**
-     *  get count result items
-     * @return mixed
+     * @return int
+     * @throws Exception
      */
-    public function getRows()
+    public function getRows(): int
     {
         $this->ensureQueryExecuted();
-        return $this->_rows;
+        return $this->rows;
     }
 
     /**
-     * max count result items
-     * @return mixed
+     * @return int
+     * @throws Exception
      */
-    public function getCountAll()
+    public function getCountAll(): int
     {
         $this->ensureQueryExecuted();
-        return $this->_rows_before_limit_at_least;
+        return $this->rows_before_limit_at_least;
     }
 
     /**
-     * @return mixed
+     * @return array
+     * @throws Exception
      */
-    public function getStatistics()
+    public function getStatistics(): array
     {
         $this->ensureQueryExecuted();
-        return $this->_statistics;
+        return $this->statistics;
     }
 
     /**
@@ -563,8 +554,11 @@ class Command extends BaseCommand
      * @param string $table the table that new rows will be inserted into.
      * @param array $columns the column data (name => value) to be inserted into the table.
      * @return $this the command object itself
+     * @throws InvalidArgumentException
+     * @throws Throwable
+     * @throws NotSupportedException
      */
-    public function insert($table, $columns)
+    public function insert(string $table, $columns): self
     {
         $params = [];
         $sql = $this->db->getQueryBuilder()->insert($table, $columns, $params);
@@ -573,21 +567,24 @@ class Command extends BaseCommand
 
     /**
      * @param string $table
-     * @param array $rows
+     * @param string $rows
+     * @return bool|mixed|string
+     * @throws Exception
+     * @throws Throwable
      */
     public function insertJsonRows(string $table, string &$rows)
     {
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
-        $categoryLog = 'clickhouse';
-        $this->logQuery($sql, $categoryLog);
-        /** @var HttpClient $client */
-        $client = $this->db->getTransport();
-        $client->setHeaders([
-            'Content-Type' => 'application/x-ndjson'
-        ]);
-        $response = $client->post($client->getQueryString([
-            'query' => $sql,
-        ]), $rows);
+        $this->logQuery($sql, 'clickhouse');
+        $client = $this->db->getConn();
+        $response = $client->post($client->getQueryString(['query' => $sql]),
+            [
+                'data' => $rows,
+                'headers' => [
+                    'Content-Type' => 'application/x-ndjson'
+                ]
+            ]
+        );
         return $this->parseResponse($response);
     }
 
@@ -596,10 +593,11 @@ class Command extends BaseCommand
      * @param array|null $columns
      * @param string $file
      * @param string $format
+     * @return bool|mixed|string
+     * @throws Throwable
      */
     public function insertFile(string $table, array $columns = null, string $file = '', string $format = 'CSV')
     {
-        $categoryLog = 'clickhouse';
         if ($columns === null) {
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
@@ -608,26 +606,24 @@ class Command extends BaseCommand
                 $columns
             ) . ')' . ' FORMAT ' . $format;
 
-        $this->logQuery($sql, $categoryLog);
-        /** @var HttpClient $client */
-        $client = $this->db->getTransport();
-        $response = $client->post($client->getQueryString([
+        $this->logQuery($sql, 'clickhouse');
+        $client = $this->db->getConn();
+        $response = $client->post($this->db->getQueryString([
             'query' => $sql
-        ]), \Co::readFile($file));
+        ]), System::readFile($file));
         return $this->parseResponse($response);
     }
 
     /**
-     * @param $table
-     * @param null $columns
+     * @param string $table
+     * @param array|null $columns
      * @param array $files
      * @param string $format
      * @return array
-     * @throws \rabbit\exception\NotSupportedException
+     * @throws Throwable
      */
-    public function batchInsertFiles($table, $columns = null, $files = [], $format = 'CSV')
+    public function batchInsertFiles(string $table, ?array $columns = null, array $files = [], string $format = 'CSV')
     {
-        $categoryLog = 'clickhouse';
         if ($columns === null) {
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
@@ -636,14 +632,13 @@ class Command extends BaseCommand
                 $columns
             ) . ')' . ' FORMAT ' . $format;
 
-        $this->logQuery($sql, $categoryLog);
+        $this->logQuery($sql, 'clickhouse');
         $responses = [];
-        /** @var HttpClient $client */
-        $client = $this->db->getTransport();
+        $client = $this->db->getConn();
         foreach ($files as $file) {
-            $responses[] = $client->post($client->getQueryString([
+            $responses[] = $client->post($this->db->getQueryString([
                 'query' => $sql,
-            ]), \Co::readFile($file));
+            ]), System::readFile($file));
         }
         return $responses;
     }
@@ -659,15 +654,23 @@ class Command extends BaseCommand
      *     ['Linda', 25],
      * ])->execute();
      * ```
+     * @param string $table
+     * @param array $columns
+     * @param $rows
+     * @return Command
      */
-    public function batchInsert($table, $columns, $rows)
+    public function batchInsert(string $table, array $columns, $rows): self
     {
         $sql = $this->db->getQueryBuilder()->batchInsert($table, $columns, $rows);
         return $this->setSql($sql);
     }
 
-    public function query()
+    /**
+     * @return DataReader
+     * @throws Exception
+     */
+    public function query(): DataReader
     {
-        throw new DbException('Clichouse unsupport cursor');
+        throw new Exception('Clichouse unsupport cursor');
     }
 }

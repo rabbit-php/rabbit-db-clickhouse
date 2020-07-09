@@ -10,12 +10,27 @@
     }
   ],
   "require": {
-    "rabbit/framework": "^1.0",
-    "rabbit/db": "^1.0"
+    "php": ">=7.4.0",
+    "ext-swoole": ">=4.5.0",
+    "rabbit/httpclient": "dev-master",
+    "rabbit/base": "dev-master",
+    "rabbit/db": "dev-master",
+    "rabbit/pool": "dev-master",
+    "rabbit/cache": "dev-master",
+    "rabbit/parser": "dev-master",
+    "rabbit/active-record": "dev-master",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "swoole/ide-helper": "@dev",
+    "phpunit/phpunit": "*"
+  },
+  "suggest": {
+    "ext-igbinary": "Support igbinary serialize"
   },
   "autoload": {
     "psr-4": {
-      "rabbit\\db\\clickhouse\\": "src/"
+      "Rabbit\\DB\\ClickHouse\\": "src/"
     }
   }
 }

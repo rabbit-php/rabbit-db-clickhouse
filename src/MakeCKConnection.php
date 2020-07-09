@@ -1,32 +1,42 @@
 <?php
+declare(strict_types=1);
 
+namespace Rabbit\DB\ClickHouse;
 
-namespace rabbit\db\clickhouse;
-
-use rabbit\core\ObjectFactory;
-use rabbit\db\click\RetryHandler;
-use rabbit\exception\InvalidConfigException;
-use rabbit\helper\ArrayHelper;
-use rabbit\helper\UrlHelper;
-use rabbit\pool\PoolProperties;
+use Rabbit\Base\Exception\InvalidConfigException;
+use Rabbit\Base\Helper\ArrayHelper;
+use Rabbit\DB\Mysql\RetryHandler;
+use Rabbit\DB\Pool\PdoPool;
+use Rabbit\Pool\BaseManager;
+use Rabbit\Pool\PoolProperties;
+use Throwable;
 use function Swlib\Http\parse_query;
 
+/**
+ * Class MakeCKConnection
+ * @package Rabbit\DB\ClickHouse
+ */
 class MakeCKConnection
 {
     /**
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
+     * @param string $class
+     * @param string $name
+     * @param string $dsn
+     * @param array|null $config
+     * @return string
+     * @throws Throwable
      */
     public static function addConnection(string $class, string $name, string $dsn, array $config = null): string
     {
         $urlArr = parse_url($dsn);
         $driver = $urlArr['scheme'];
-        /** @var Manager $manager */
+        /** @var BaseManager $manager */
         $manager = getDI($driver);
-        if (!$manager->hasConnection($name)) {
+        if (!$manager->has($name)) {
             $conn = [
                 'class' => $class,
                 'name' => $name,
+                'dsn' => $dsn
             ];
             if (is_array($config)) {
                 foreach ($config as $key => $value) {
@@ -34,11 +44,8 @@ class MakeCKConnection
                 }
             }
             if (in_array($driver, ['clickhouse', 'clickhouses'])) {
-                $urlArr['scheme'] = str_replace('clickhouse', 'http', $urlArr['scheme']);
-                $conn['dsn'] = UrlHelper::unparse_url($urlArr);
-                $manager->addConnection([$name => ObjectFactory::createObject($conn, [], false)]);
+                $manager->add([$name => create($conn, [], false)]);
             } elseif ($driver === 'click') {
-                $conn['dsn'] = $dsn;
                 $poolConfig = [
                     'class' => PoolProperties::class,
                 ];
@@ -52,22 +59,22 @@ class MakeCKConnection
                     'max',
                     'wait',
                     'retry'
-                ], null, [
+                ], [
                     5,
                     5,
                     0,
                     3
                 ]);
-                $conn['pool'] = ObjectFactory::createObject([
-                    'class' => \rabbit\db\pool\PdoPool::class,
-                    'poolConfig' => ObjectFactory::createObject($poolConfig, [], false)
+                $conn['pool'] = create([
+                    'class' => PdoPool::class,
+                    'poolConfig' => create($poolConfig, [], false)
                 ], [], false);
                 if (!empty($retryHandler)) {
-                    $conn['retryHandler'] = ObjectFactory::createObject($retryHandler);
+                    $conn['retryHandler'] = create($retryHandler);
                 } else {
                     $conn['retryHandler'] = getDI(RetryHandler::class);
                 }
-                $manager->addConnection([$name => $conn]);
+                $manager->add([$name => $conn]);
             } else {
                 throw new InvalidConfigException("Not support driver $driver");
             }

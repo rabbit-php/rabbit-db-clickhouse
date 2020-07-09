@@ -1,16 +1,19 @@
 <?php
+declare(strict_types=1);
 
+namespace Rabbit\DB\ClickHouse;
 
-namespace rabbit\db\clickhouse;
+use Rabbit\DB\ConnectionInterface;
 
-use rabbit\db\ConnectionInterface;
-
+/**
+ * Class BatchInsertJsonRows
+ * @package Rabbit\DB\ClickHouse
+ */
 class BatchInsertJsonRows extends BatchInsert
 {
     /**
      * BatchInsert constructor.
      * @param string $table
-     * @param array $columns
      * @param ConnectionInterface $db
      */
     public function __construct(string $table, ConnectionInterface $db)
@@ -34,7 +37,7 @@ class BatchInsertJsonRows extends BatchInsert
         return true;
     }
 
-    public function clearData()
+    public function clearData(): void
     {
         $this->sql = '';
         $this->hasRows = 0;

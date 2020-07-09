@@ -1,40 +1,44 @@
 <?php
+declare(strict_types=1);
+
+namespace Rabbit\DB\ClickHouse;
 
 
-namespace rabbit\db\clickhouse;
-
-use rabbit\db\BatchInterface;
-use rabbit\db\ConnectionInterface;
-use rabbit\helper\FileHelper;
+use Rabbit\Base\Core\Exception;
+use Rabbit\Base\Helper\FileHelper;
+use Rabbit\DB\BatchInterface;
+use Rabbit\DB\ConnectionInterface;
 
 /**
  * Class BatchInsertCsv
- * @package rabbit\db\clickhouse
+ * @package Rabbit\DB\ClickHouse
  */
 class BatchInsertCsv implements BatchInterface
 {
     /** @var string */
-    private $table;
-    /** @var Connection */
-    private $db;
+    private string $table;
+    /** @var ConnectionInterface */
+    private ?ConnectionInterface $db = null;
     /** @var array */
-    private $columns = [];
+    private array $columns = [];
     /** @var string */
-    private $cacheDir = '/dev/shm/ck/csv/';
+    private string $cacheDir = '/dev/shm/ck/csv/';
     /** @var bool|resource */
     private $fp;
     /** @var string */
-    private $ext = 'csv';
+    private string $ext = 'csv';
     /** @var string */
-    private $fileName;
+    private string $fileName;
     /** @var int */
-    private $hasRows = 0;
+    private int $hasRows = 0;
 
     /**
      * BatchInsert constructor.
      * @param string $table
-     * @param array $columns
+     * @param string $fileName
      * @param ConnectionInterface $db
+     * @param string $cacheDir
+     * @throws Exception
      */
     public function __construct(
         string $table,
@@ -50,10 +54,13 @@ class BatchInsertCsv implements BatchInterface
         $this->open();
     }
 
+    /**
+     * @throws Exception
+     */
     private function open(): void
     {
         if (!FileHelper::createDirectory($this->cacheDir) || (($this->fp = @fopen($this->fileName, 'w+')) === false)) {
-            throw new \InvalidArgumentException("Unable to open file: {$fileName}");
+            throw new \InvalidArgumentException("Unable to open file: {$this->fileName}");
         }
     }
 

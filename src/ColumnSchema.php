@@ -1,13 +1,16 @@
 <?php
+declare(strict_types=1);
 
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
+use Rabbit\Base\Helper\StringHelper;
+use Rabbit\DB\ExpressionInterface;
+use Rabbit\DB\PdoValue;
 
-use rabbit\db\ColumnSchema as BaseColumnSchema;
-use rabbit\db\ExpressionInterface;
-use rabbit\db\PdoValue;
-use rabbit\helper\StringHelper;
-
-class ColumnSchema extends BaseColumnSchema
+/**
+ * Class ColumnSchema
+ * @package Rabbit\DB\ClickHouse
+ */
+class ColumnSchema extends \Rabbit\DB\ColumnSchema
 {
     /**
      * @inheritdoc

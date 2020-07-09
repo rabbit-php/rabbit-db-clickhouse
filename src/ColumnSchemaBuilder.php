@@ -1,11 +1,9 @@
 <?php
+declare(strict_types=1);
 
+namespace Rabbit\DB\ClickHouse;
 
-namespace rabbit\db\clickhouse;
-
-use rabbit\db\ColumnSchemaBuilder as BaseColumnSchemaBuilder;
-
-class ColumnSchemaBuilder extends BaseColumnSchemaBuilder
+class ColumnSchemaBuilder extends \Rabbit\DB\ColumnSchemaBuilder
 {
     /**
      * @inheritdoc
@@ -26,7 +24,7 @@ class ColumnSchemaBuilder extends BaseColumnSchemaBuilder
     /**
      * @inheritdoc
      */
-    protected function buildUnsignedString()
+    protected function buildUnsignedString(): string
     {
         return $this->isUnsigned ? 'U' : '';
     }

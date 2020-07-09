@@ -1,22 +1,25 @@
 <?php
+declare(strict_types=1);
 
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
 
-use rabbit\App;
-use rabbit\core\ObjectFactory;
-use rabbit\db\ConnectionInterface;
+use DI\DependencyException;
+use DI\NotFoundException;
+use Rabbit\ActiveRecord\ActiveQueryInterface;
+use Rabbit\Base\App;
+use Rabbit\Pool\ConnectionInterface;
+use ReflectionException;
+use Throwable;
 
 /**
  * Class ActiveRecord
- * @package rabbit\db\clickhouse
+ * @package Rabbit\DB\ClickHouse
  */
-class ActiveRecord extends \rabbit\activerecord\ActiveRecord
+class ActiveRecord extends \Rabbit\ActiveRecord\ActiveRecord
 {
-
-
     /**
-     * Returns the connection used by this AR class.
-     * @return mixed|Connection the database connection used by this AR class.
+     * @return ConnectionInterface
+     * @throws Throwable
      */
     public static function getDb(): ConnectionInterface
     {
@@ -24,13 +27,13 @@ class ActiveRecord extends \rabbit\activerecord\ActiveRecord
     }
 
     /**
-     * @return mixed|\rabbit\activerecord\ActiveQuery
-     * @throws \DI\DependencyException
-     * @throws \DI\NotFoundException
+     * @return ActiveQueryInterface
+     * @throws DependencyException
+     * @throws NotFoundException
      */
-    public static function find()
+    public static function find(): ActiveQueryInterface
     {
-        return ObjectFactory::createObject(ActiveQuery::class, ['modelClass' => get_called_class()], false);
+        return create(ActiveQuery::class, ['modelClass' => get_called_class()], false);
     }
 
     /**
@@ -42,19 +45,19 @@ class ActiveRecord extends \rabbit\activerecord\ActiveRecord
      *
      * @return string[] the primary key name(s) for this AR class.
      */
-    public static function primaryKey()
+    public static function primaryKey(): array
     {
-        // TODO: Implement primaryKey() method.
         return ['id'];
     }
 
     /**
      * @param bool $runValidation
-     * @param null $attributes
+     * @param array|null $attributes
      * @return bool
-     * @throws \Exception
+     * @throws Throwable
+     * @throws ReflectionException
      */
-    public function insert($runValidation = true, $attributes = null)
+    public function insert(bool $runValidation = true, array $attributes = null): bool
     {
         if ($runValidation && !$this->validate($attributes)) {
             App::info('Model not inserted due to validation error.', 'clickhouse');

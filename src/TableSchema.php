@@ -1,10 +1,10 @@
 <?php
-namespace rabbit\db\clickhouse;
+namespace Rabbit\DB\ClickHouse;
 
 /**
  * Class TableSchema
- * @package rabbit\db\clickhouse
+ * @package Rabbit\DB\ClickHouse
  */
-class TableSchema extends \rabbit\db\TableSchema
+class TableSchema extends \Rabbit\DB\TableSchema
 {
 }

@@ -1,15 +1,22 @@
 <?php
-namespace rabbit\db\clickhouse;
+declare(strict_types=1);
 
-use rabbit\activerecord\ActiveQueryInterface;
-use rabbit\activerecord\ActiveQueryTrait;
-use rabbit\activerecord\ActiveRelationTrait;
-use rabbit\core\ObjectFactory;
-use rabbit\exception\InvalidConfigException;
+namespace Rabbit\DB\ClickHouse;
+
+
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\ActiveRecord\ActiveQueryInterface;
+use Rabbit\ActiveRecord\ActiveQueryTrait;
+use Rabbit\ActiveRecord\ActiveRecordInterface;
+use Rabbit\ActiveRecord\ActiveRelationTrait;
+use Rabbit\Base\Exception\InvalidConfigException;
+use Rabbit\DB\ConnectionInterface;
+use ReflectionException;
+use Throwable;
 
 /**
  * Class ActiveQuery
- * @package rabbit\db\clickhouse
+ * @package Rabbit\DB\ClickHouse
  */
 class ActiveQuery extends Query implements ActiveQueryInterface
 {
@@ -18,60 +25,39 @@ class ActiveQuery extends Query implements ActiveQueryInterface
 
     /**
      * Constructor.
-     * @param array $modelClass the model class associated with this query
+     * @param string $modelClass the model class associated with this query
      * @param array $config configurations to be applied to the newly created query object
+     * @throws ReflectionException
      */
-    public function __construct($modelClass, $config = [])
+    public function __construct(string $modelClass, array $config = [])
     {
         $this->modelClass = $modelClass;
         if (!empty($config)) {
-            ObjectFactory::configure($this, $config);
+            configure($this, $config);
         }
     }
-    
+
     /**
-    * Creates a DB command that can be used to execute this query.
-    * @param Connection|null $db the DB connection used to create the DB command.
-    * If `null`, the DB connection returned by [[modelClass]] will be used.
-    * @return Command the created DB command instance.
-    */
-    public function createCommand($db = null)
+     * Creates a DB command that can be used to execute this query.
+     * @param ConnectionInterface $db the DB connection used to create the DB command.
+     * If `null`, the DB connection returned by [[modelClass]] will be used.
+     * @return Command the created DB command instance.
+     * @throws Throwable
+     */
+    public function createCommand(ConnectionInterface $db = null): \Rabbit\DB\Command
     {
         $modelClass = $this->modelClass;
-        return parent::createCommand($db ? $db : $modelClass::getDb());
+        return parent::createCommand($db ?? $modelClass::getDb());
     }
 
     /**
-     * Returns the number of records.
-     * @param string $q the COUNT expression. Defaults to ''. clickhouse not support
-     * Make sure you properly [quote](guide:db-dao#quoting-table-and-column-names) column names in the expression.
-     * @param Connection $db the database connection used to generate the SQL statement.
-     * If this parameter is not given (or null), the `db` application component will be used.
-     * @return integer|string number of records. The result may be a string depending on the
-     * underlying database engine and to support integer values higher than a 32bit PHP integer can handle.
-     */
-    public function count($q = '', $db = null)
-    {
-        return parent::count($q, $db);
-    }
-
-    /**
-     * Executes query and returns all results as an array.
-     * @param Connection $db the DB connection used to create the DB command.
-     * If null, the DB connection returned by [[modelClass]] will be used.
-     * @return array|ActiveRecord[] the query results. If the query results in nothing, an empty array will be returned.
-     */
-    public function all($db = null)
-    {
-        return parent::all($db);
-    }
-
-    /**
-     * @param null $db
+     * @param ConnectionInterface $db
      * @return ActiveRecord|null
      * @throws InvalidConfigException
+     * @throws Throwable
+     * @throws InvalidArgumentException
      */
-    public function one($db = null)
+    public function one(ConnectionInterface $db = null)
     {
         $row = parent::one($db);
         if ($row !== null) {
@@ -86,7 +72,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
      * {@inheritdoc}
      * @throws InvalidConfigException
      */
-    public function populate($rows)
+    public function populate(array $rows): array
     {
         if (empty($rows)) {
             return [];
@@ -111,8 +97,8 @@ class ActiveQuery extends Query implements ActiveQueryInterface
      * Removes duplicated models by checking their primary key values.
      * This method is mainly called when a join query is performed, which may cause duplicated rows being returned.
      * @param array $models the models to be checked
-     * @throws InvalidConfigException if model primary key is empty
      * @return array the distinctive models
+     * @throws InvalidConfigException if model primary key is empty
      */
     private function removeDuplicatedModels($models)
     {
@@ -193,7 +179,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
      * @param $alias
      * @return $this
      */
-    public function alias($alias)
+    public function alias(string $alias): self
     {
         if (empty($this->from) || count($this->from) < 2) {
             [$tableName] = $this->getTableNameAndAlias();
@@ -215,7 +201,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
     /**
      * @return array
      */
-    private function getTableNameAndAlias()
+    private function getTableNameAndAlias(): array
     {
         if (empty($this->from)) {
             $tableName = $this->getPrimaryTableName();
@@ -241,7 +227,7 @@ class ActiveQuery extends Query implements ActiveQueryInterface
     /**
      * @return string
      */
-    protected function getPrimaryTableName()
+    protected function getPrimaryTableName(): string
     {
         /* @var $modelClass ActiveRecord */
         $modelClass = $this->modelClass;
