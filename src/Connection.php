@@ -8,7 +8,6 @@ use Rabbit\Base\App;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\Exception;
 use Rabbit\DB\QueryBuilder;
-use Rabbit\DB\Schema;
 use Rabbit\HttpClient\Client;
 use Throwable;
 
@@ -74,7 +73,7 @@ class Connection extends \Rabbit\DB\Connection
         $path = isset($parsed['path']) ? $parsed['path'] : '';
 
         $options = [
-            'uri' => "$scheme$host$port$path",
+            'base_uri' => "$scheme$host$port$path",
             'use_pool' => $size,
             'retry_time' => $retry,
             'timeout' => $timeout

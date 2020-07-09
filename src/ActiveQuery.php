@@ -10,7 +10,7 @@ use Rabbit\ActiveRecord\ActiveQueryTrait;
 use Rabbit\ActiveRecord\ActiveRecordInterface;
 use Rabbit\ActiveRecord\ActiveRelationTrait;
 use Rabbit\Base\Exception\InvalidConfigException;
-use Rabbit\DB\ConnectionInterface;
+use Rabbit\Pool\ConnectionInterface;
 use ReflectionException;
 use Throwable;
 

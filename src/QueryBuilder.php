@@ -207,7 +207,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
      * @param array $limitBy
      * @return string
      */
-    public function buildLimitBy(array $limitBy): string
+    public function buildLimitBy(?array $limitBy): string
     {
         if (empty($limitBy)) {
             return '';

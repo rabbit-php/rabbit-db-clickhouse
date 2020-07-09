@@ -117,7 +117,7 @@ class Command extends \Rabbit\DB\Command
 
         $this->logQuery($rawSql, 'clickhouse');
         $client = $this->db->getConn();
-        $response = $client->post($client->getQueryString(), $rawSql);
+        $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
         if ($this->parseResponse($response) === '') {
             return 1;
         }
@@ -229,7 +229,7 @@ class Command extends \Rabbit\DB\Command
 
         try {
             $client = $this->db->getConn();
-            $response = $client->post($client->getQueryString(), $rawSql);
+            $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
             $data = $this->parseResponse($response);
             $result = $this->prepareResult($data, $method, $fetchMode);
         } catch (\Throwable $e) {
@@ -259,7 +259,7 @@ class Command extends \Rabbit\DB\Command
         if ($path === null) {
             $client = $this->db->getConn();
             try {
-                $response = $client->post($client->getQueryString(), $rawSql);
+                $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
                 $result = $this->parseResponse($response);
             } catch (\Throwable $e) {
                 throw new Exception("Download error: " . $e->getMessage());
@@ -577,7 +577,7 @@ class Command extends \Rabbit\DB\Command
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
         $this->logQuery($sql, 'clickhouse');
         $client = $this->db->getConn();
-        $response = $client->post($client->getQueryString(['query' => $sql]),
+        $response = $client->post($this->db->getQueryString(['query' => $sql]),
             [
                 'data' => $rows,
                 'headers' => [
@@ -610,7 +610,7 @@ class Command extends \Rabbit\DB\Command
         $client = $this->db->getConn();
         $response = $client->post($this->db->getQueryString([
             'query' => $sql
-        ]), System::readFile($file));
+        ]), ['data' => System::readFile($file)]);
         return $this->parseResponse($response);
     }
 
@@ -638,7 +638,7 @@ class Command extends \Rabbit\DB\Command
         foreach ($files as $file) {
             $responses[] = $client->post($this->db->getQueryString([
                 'query' => $sql,
-            ]), System::readFile($file));
+            ]), ['data' => System::readFile($file)]);
         }
         return $responses;
     }
