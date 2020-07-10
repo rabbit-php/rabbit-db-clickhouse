@@ -20,6 +20,8 @@ class Schema extends \Rabbit\DB\Schema
 {
     /** @var string */
     public string $columnSchemaClass = ColumnSchema::class;
+    /** @var string */
+    protected string $builderClass = QueryBuilder::class;
     /** @var array */
     public array $typeMap = [
         'UInt8' => self::TYPE_SMALLINT,
@@ -93,11 +95,6 @@ class Schema extends \Rabbit\DB\Schema
             $columns[$name] = $tableSchema->columns[$name]->phpTypecast($value);
         }
         return $columns;
-    }
-
-    public function createQueryBuilder(): \Rabbit\DB\QueryBuilder
-    {
-        return new QueryBuilder($this->db);
     }
 
     /**
