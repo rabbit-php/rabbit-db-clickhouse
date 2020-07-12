@@ -32,34 +32,28 @@ class ActiveQuery extends Query implements ActiveQueryInterface
     public function __construct(string $modelClass, array $config = [])
     {
         $this->modelClass = $modelClass;
-        if (!empty($config)) {
-            configure($this, $config);
-        }
+        parent::__construct($modelClass::getDb(), $config);
     }
 
     /**
-     * Creates a DB command that can be used to execute this query.
-     * @param ConnectionInterface $db the DB connection used to create the DB command.
-     * If `null`, the DB connection returned by [[modelClass]] will be used.
-     * @return Command the created DB command instance.
+     * @return \Rabbit\DB\Command
      * @throws Throwable
      */
-    public function createCommand(ConnectionInterface $db = null): \Rabbit\DB\Command
+    public function createCommand(): \Rabbit\DB\Command
     {
         $modelClass = $this->modelClass;
-        return parent::createCommand($db ?? $modelClass::getDb());
+        return parent::createCommand();
     }
 
     /**
-     * @param ConnectionInterface $db
-     * @return ActiveRecord|null
+     * @return array|bool|mixed|null
+     * @throws InvalidArgumentException
      * @throws InvalidConfigException
      * @throws Throwable
-     * @throws InvalidArgumentException
      */
-    public function one(ConnectionInterface $db = null)
+    public function one()
     {
-        $row = parent::one($db);
+        $row = parent::one();
         if ($row !== null) {
             $models = $this->populate([$row]);
             return reset($models) ?: null;

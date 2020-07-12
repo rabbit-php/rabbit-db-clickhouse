@@ -35,19 +35,27 @@ class Query extends \Rabbit\DB\Query
     public ?array $limitBy = null;
 
     /**
-     * @param ConnectionInterface|null $db
+     * Query constructor.
+     * @param \Rabbit\Pool\ConnectionInterface|null $db
+     * @param array $config
+     * @throws Throwable
+     * @throws \ReflectionException
+     */
+    public function __construct(?\Rabbit\Pool\ConnectionInterface $db = null, array $config = [])
+    {
+        parent::__construct($db ?? getDI('clickhouse')->get(), $config);
+    }
+
+    /**
      * @return Command
      * @throws Throwable
      */
-    public function createCommand(ConnectionInterface $db = null): Command
+    public function createCommand(): Command
     {
-        if ($db === null) {
-            $db = getDI('clickhouse')->get();
-        }
-        list($sql, $params) = $db->getQueryBuilder()->build($this);
+        list($sql, $params) = $this->db->getQueryBuilder()->build($this);
 
 
-        $this->command = $db->createCommand($sql, $params);
+        $this->command = $this->db->createCommand($sql, $params);
         return $this->command;
     }
 
@@ -205,65 +213,37 @@ class Query extends \Rabbit\DB\Query
     }
 
     /**
-     * Starts a batch query.
-     *
-     * A batch query supports fetching data in batches, which can keep the memory usage under a limit.
-     * This method will return a [[BatchQueryResult]] object which implements the [[\Iterator]] interface
-     * and can be traversed to retrieve the data in batches.
-     *
-     * For example,
-     *
-     * ```php
-     * $query = (new Query)->from('user');
-     * foreach ($query->batch() as $rows) {
-     *     // $rows is an array of 100 or fewer rows from user table
-     * }
-     * ```
-     *
-     * @param int $batchSize the number of records to be fetched in each batch.
-     * @param ConnectionInterface $db the database connection. If not set, the "db" application component will be used.
-     * @return BatchQueryResult the batch query result. It implements the [[\Iterator]] interface
-     * and can be traversed to retrieve the data in batches.
+     * @param int $batchSize
+     * @return BatchQueryResult
      * @throws DependencyException
      * @throws NotFoundException
+     * @throws \ReflectionException
      */
-    public function batch(int $batchSize = 100, ConnectionInterface $db = null): BatchQueryResult
+    public function batch(int $batchSize = 100): BatchQueryResult
     {
         return create([
             'class' => BatchQueryResult::class,
             'query' => $this,
             'batchSize' => $batchSize,
-            'db' => $db,
+            'db' => $this->db,
             'each' => false,
         ], [], false);
     }
 
     /**
-     * Starts a batch query and retrieves data row by row.
-     *
-     * This method is similar to [[batch()]] except that in each iteration of the result,
-     * only one row of data is returned. For example,
-     *
-     * ```php
-     * $query = (new Query)->from('user');
-     * foreach ($query->each() as $row) {
-     * }
-     * ```
-     *
-     * @param int $batchSize the number of records to be fetched in each batch.
-     * @param ConnectionInterface $db the database connection. If not set, the "db" application component will be used.
-     * @return BatchQueryResult the batch query result. It implements the [[\Iterator]] interface
-     * and can be traversed to retrieve the data in batches.
+     * @param int $batchSize
+     * @return BatchQueryResult
      * @throws DependencyException
      * @throws NotFoundException
+     * @throws \ReflectionException
      */
-    public function each(int $batchSize = 100, ConnectionInterface $db = null): BatchQueryResult
+    public function each(int $batchSize = 100): BatchQueryResult
     {
         return create([
             'class' => BatchQueryResult::class,
             'query' => $this,
             'batchSize' => $batchSize,
-            'db' => $db,
+            'db' => $this->db,
             'each' => true,
         ], [], false);
     }
