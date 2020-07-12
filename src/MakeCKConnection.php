@@ -5,7 +5,7 @@ namespace Rabbit\DB\ClickHouse;
 
 use Rabbit\Base\Exception\InvalidConfigException;
 use Rabbit\Base\Helper\ArrayHelper;
-use Rabbit\DB\Mysql\RetryHandler;
+use Rabbit\DB\RetryHandler;
 use Rabbit\DB\Pool\PdoPool;
 use Rabbit\Pool\BaseManager;
 use Rabbit\Pool\PoolProperties;
