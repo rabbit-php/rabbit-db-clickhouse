@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
+use Rabbit\Base\Exception\NotSupportedException;
 use Rabbit\DB\ConnectionInterface;
 
 /**
@@ -20,6 +21,16 @@ class BatchInsertJsonRows extends BatchInsert
     {
         $this->table = $table;
         $this->db = $db;
+    }
+
+    /**
+     * @param array $columns
+     * @return bool
+     * @throws NotSupportedException
+     */
+    public function addColumns(array $columns): bool
+    {
+        throw new NotSupportedException("BatchInsertJsonRows no need to set columns");
     }
 
     /**

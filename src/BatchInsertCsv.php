@@ -84,7 +84,7 @@ class BatchInsertCsv implements BatchInterface
      */
     public function addColumns(array $columns): bool
     {
-        if (empty($columns)) {
+        if (empty($columns) || $this->columns) {
             return false;
         }
         $this->columns = $columns;

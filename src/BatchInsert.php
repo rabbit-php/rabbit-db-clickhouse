@@ -20,7 +20,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
      */
     public function addColumns(array $columns): bool
     {
-        if (empty($columns)) {
+        if (empty($columns) || $this->columns) {
             return false;
         }
         if (($tableSchema = $this->schema->getTableSchema($this->table)) !== null) {
