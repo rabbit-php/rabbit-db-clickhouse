@@ -118,10 +118,7 @@ class Command extends \Rabbit\DB\Command
         $this->logQuery($rawSql, 'clickhouse');
         $client = $this->db->getConn();
         $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
-        if ($this->parseResponse($response) === '') {
-            return 1;
-        }
-        return (int)$response;
+        return $this->parseResponse($response) === true ? 1 : 0;
     }
 
 
