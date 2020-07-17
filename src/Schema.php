@@ -23,7 +23,7 @@ class Schema extends \Rabbit\DB\Schema
     /** @var string */
     protected string $builderClass = QueryBuilder::class;
     /** @var array */
-    public array $typeMap = [
+    public static array $typeMap = [
         'UInt8' => self::TYPE_SMALLINT,
         'UInt16' => self::TYPE_INTEGER,
         'UInt32' => self::TYPE_INTEGER,
@@ -219,14 +219,14 @@ class Schema extends \Rabbit\DB\Schema
         $column = $this->createColumnSchema();
         $column->name = $info['name'];
         $column->dbType = $info['type'];
-        $column->type = isset($this->typeMap[$column->dbType]) ? $this->typeMap[$column->dbType] : self::TYPE_STRING;
+        $column->type = isset(self::$typeMap[$column->dbType]) ? self::$typeMap[$column->dbType] : self::TYPE_STRING;
 
 
         if (preg_match('/^([\w ]+)(?:\(([^\)]+)\))?$/', $column->dbType, $matches)) {
             $type = $matches[1];
             $column->dbType = $matches[1] . (isset($matches[2]) ? "({$matches[2]})" : '');
-            if (isset($this->typeMap[$type])) {
-                $column->type = $this->typeMap[$type];
+            if (isset(self::$typeMap[$type])) {
+                $column->type = self::$typeMap[$type];
             }
         }
 

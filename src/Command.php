@@ -121,7 +121,7 @@ class Command extends \Rabbit\DB\Command
         if ($this->parseResponse($response) === '') {
             return 1;
         }
-        return 0;
+        return (int)$response;
     }
 
 
