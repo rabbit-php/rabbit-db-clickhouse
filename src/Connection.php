@@ -62,7 +62,7 @@ class Connection extends \Rabbit\DB\Connection
         isset($parsed['query']) ? parse_str($parsed['query'], $query) : $query = [];
         $query['database'] = $this->database = (string)ArrayHelper::remove($query, 'dbname', 'default');
         $this->query = $query;
-        $size = ArrayHelper::remove($query, 'size', true);
+        $size = ArrayHelper::remove($query, 'size', false);
         $retry = ArrayHelper::remove($query, 'retry', 0);
         $timeout = ArrayHelper::remove($query, 'timeout', 5);
 
