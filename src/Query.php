@@ -7,9 +7,10 @@ use DI\DependencyException;
 use DI\NotFoundException;
 use Rabbit\DB\BatchQueryResult;
 use Rabbit\DB\Command;
-use Rabbit\DB\ConnectionInterface;
 use Rabbit\DB\Exception;
 use Rabbit\DB\Expression;
+use Rabbit\Pool\ConnectionInterface;
+use ReflectionException;
 use Throwable;
 
 /**
@@ -36,14 +37,14 @@ class Query extends \Rabbit\DB\Query
 
     /**
      * Query constructor.
-     * @param \Rabbit\Pool\ConnectionInterface|null $db
+     * @param ConnectionInterface|null $db
      * @param array $config
      * @throws Throwable
-     * @throws \ReflectionException
+     * @throws ReflectionException
      */
-    public function __construct(?\Rabbit\Pool\ConnectionInterface $db = null, array $config = [])
+    public function __construct(?ConnectionInterface $db = null, string $driver = 'clickhouse', array $config = [])
     {
-        parent::__construct($db ?? getDI('clickhouse')->get(), $config);
+        parent::__construct($db ?? getDI($driver)->get(), $config);
     }
 
     /**
