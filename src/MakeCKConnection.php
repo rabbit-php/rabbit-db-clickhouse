@@ -5,12 +5,11 @@ namespace Rabbit\DB\ClickHouse;
 
 use Rabbit\Base\Exception\InvalidConfigException;
 use Rabbit\Base\Helper\ArrayHelper;
-use Rabbit\DB\RetryHandler;
 use Rabbit\DB\Pool\PdoPool;
+use Rabbit\DB\RetryHandler;
 use Rabbit\Pool\BaseManager;
 use Rabbit\Pool\PoolProperties;
 use Throwable;
-use function Swlib\Http\parse_query;
 
 /**
  * Class MakeCKConnection
@@ -22,11 +21,11 @@ class MakeCKConnection
      * @param string $class
      * @param string $name
      * @param string $dsn
-     * @param array|null $config
+     * @param array $pool
      * @return string
      * @throws Throwable
      */
-    public static function addConnection(string $class, string $name, string $dsn, array $config = null): string
+    public static function addConnection(string $class, string $name, string $dsn, array $pool = []): string
     {
         $urlArr = parse_url($dsn);
         $driver = $urlArr['scheme'];
@@ -38,11 +37,6 @@ class MakeCKConnection
                 'name' => $name,
                 'dsn' => $dsn
             ];
-            if (is_array($config)) {
-                foreach ($config as $key => $value) {
-                    $conn[$key] = $value;
-                }
-            }
             if (in_array($driver, ['clickhouse', 'clickhouses'])) {
                 $manager->add([$name => create($conn, [], false)]);
             } elseif ($driver === 'click') {
@@ -54,7 +48,7 @@ class MakeCKConnection
                     $poolConfig['maxActive'],
                     $poolConfig['maxWait'],
                     $poolConfig['maxRetry']
-                ] = ArrayHelper::getValueByArray(parse_query($urlArr['query']), [
+                ] = ArrayHelper::getValueByArray($pool, [
                     'min',
                     'max',
                     'wait',
