@@ -154,7 +154,7 @@ class Command extends \Rabbit\DB\Command
     public function getRawSql(): string
     {
         if (empty($this->params)) {
-            return $this->_sql;
+            return $this->sql;
         }
         $params = [];
         foreach ($this->params as $name => $value) {
@@ -172,10 +172,10 @@ class Command extends \Rabbit\DB\Command
             }
         }
         if (!isset($params[0])) {
-            return strtr($this->_sql, $params);
+            return strtr($this->sql, $params);
         }
         $sql = '';
-        foreach (explode('?', $this->_sql) as $i => $part) {
+        foreach (explode('?', $this->sql) as $i => $part) {
             $sql .= $part . (isset($params[$i]) ? $params[$i] : '');
         }
         return $sql;
@@ -444,7 +444,7 @@ class Command extends \Rabbit\DB\Command
      */
     public function getData()
     {
-        if ($this->isResult === null && !empty($this->_sql)) {
+        if ($this->isResult === null && !empty($this->sql)) {
             $this->queryInternal(null);
         }
         $this->ensureQueryExecuted();
@@ -466,7 +466,7 @@ class Command extends \Rabbit\DB\Command
      */
     public function getSchemaQuery(): string
     {
-        $sql = $this->_sql;
+        $sql = $this->sql;
         $meta = $this->getMeta();
         if (!preg_match('#^SELECT#is', $sql)) {
             throw new Exception('Query was not SELECT type');

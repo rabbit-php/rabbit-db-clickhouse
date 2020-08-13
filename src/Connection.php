@@ -140,10 +140,10 @@ class Connection extends \Rabbit\DB\Connection
      */
     public function getSchema(): Schema
     {
-        if ($this->_schema !== null) {
-            return $this->_schema;
+        if ($this->schema !== null) {
+            return $this->schema;
         }
-        return $this->_schema = new $this->schemaClass($this);
+        return $this->schema = new $this->schemaClass($this);
     }
 
     /**

@@ -10,6 +10,7 @@ use Psr\SimpleCache\InvalidArgumentException;
 use Rabbit\Base\Exception\NotSupportedException;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\Exception;
+use ReflectionException;
 use Throwable;
 
 /**
@@ -212,7 +213,7 @@ class Schema extends \Rabbit\DB\Schema
      * @param array $info
      * @return ColumnSchema
      * @throws DependencyException
-     * @throws NotFoundException
+     * @throws NotFoundException|ReflectionException
      */
     protected function loadColumnSchema(array $info): \Rabbit\DB\ColumnSchema
     {
