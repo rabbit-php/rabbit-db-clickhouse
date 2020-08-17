@@ -16,7 +16,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
     /**
      * @param array $columns
      * @return bool
-     * @throws Throwable
+     * @throws Throwable|InvalidArgumentException
      */
     public function addColumns(array $columns): bool
     {

@@ -136,9 +136,9 @@ class Connection extends \Rabbit\DB\Connection
     }
 
     /**
-     * @return Schema
+     * @return \Rabbit\DB\Schema
      */
-    public function getSchema(): Schema
+    public function getSchema(): \Rabbit\DB\Schema
     {
         if ($this->schema !== null) {
             return $this->schema;
