@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -301,9 +302,9 @@ class Command extends \Rabbit\DB\Command
                     throw new Exception("{$rawSql} download failed!");
                 }
                 if ($this->queryCacheDuration > 0) {
-                    Timer::addAfterTimer('download.' . $fileName, $this->queryCacheDuration * 1000, function () use ($fileName) {
+                    Timer::addAfterTimer($this->queryCacheDuration * 1000, function () use ($fileName) {
                         @unlink($fileName);
-                    });
+                    }, 'download.' . $fileName);
                 }
                 $result = $fileName;
             } catch (Throwable $e) {
@@ -574,7 +575,8 @@ class Command extends \Rabbit\DB\Command
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
         $this->logQuery($sql, 'clickhouse');
         $client = $this->db->getConn();
-        $response = $client->post($this->db->getQueryString(['query' => $sql]),
+        $response = $client->post(
+            $this->db->getQueryString(['query' => $sql]),
             [
                 'data' => $rows,
                 'headers' => [
@@ -599,9 +601,9 @@ class Command extends \Rabbit\DB\Command
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
-                ', ',
-                $columns
-            ) . ')' . ' FORMAT ' . $format;
+            ', ',
+            $columns
+        ) . ')' . ' FORMAT ' . $format;
 
         $this->logQuery($sql, 'clickhouse');
         $client = $this->db->getConn();
@@ -625,9 +627,9 @@ class Command extends \Rabbit\DB\Command
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
         }
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
-                ', ',
-                $columns
-            ) . ')' . ' FORMAT ' . $format;
+            ', ',
+            $columns
+        ) . ')' . ' FORMAT ' . $format;
 
         $this->logQuery($sql, 'clickhouse');
         $responses = [];
