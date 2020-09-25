@@ -4,47 +4,19 @@ declare(strict_types=1);
 namespace Rabbit\DB\ClickHouse;
 
 
-use Psr\SimpleCache\InvalidArgumentException;
-use Rabbit\ActiveRecord\ActiveQueryInterface;
-use Rabbit\ActiveRecord\ActiveQueryTrait;
-use Rabbit\ActiveRecord\ActiveRecordInterface;
-use Rabbit\ActiveRecord\ActiveRelationTrait;
-use Rabbit\Base\Exception\InvalidConfigException;
-use Rabbit\Pool\ConnectionInterface;
-use ReflectionException;
 use Throwable;
+use ReflectionException;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\ActiveRecord\ActiveRecordInterface;
+use Rabbit\Base\Exception\InvalidConfigException;
+use Rabbit\ActiveRecord\ActiveQuery as ActiveRecordActiveQuery;
 
 /**
  * Class ActiveQuery
  * @package Rabbit\DB\ClickHouse
  */
-class ActiveQuery extends Query implements ActiveQueryInterface
+class ActiveQuery extends ActiveRecordActiveQuery
 {
-    use ActiveQueryTrait;
-    use ActiveRelationTrait;
-
-    /**
-     * Constructor.
-     * @param string $modelClass the model class associated with this query
-     * @param array $config configurations to be applied to the newly created query object
-     * @throws ReflectionException
-     */
-    public function __construct(string $modelClass, array $config = [])
-    {
-        $this->modelClass = $modelClass;
-        parent::__construct($modelClass::getDb(), $config);
-    }
-
-    /**
-     * @return \Rabbit\DB\Command
-     * @throws Throwable
-     */
-    public function createCommand(): \Rabbit\DB\Command
-    {
-        $modelClass = $this->modelClass;
-        return parent::createCommand();
-    }
-
     /**
      * @return array|bool|mixed|null
      * @throws InvalidArgumentException
