@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-use Co\System;
-use Psr\Http\Message\ResponseInterface;
-use Psr\SimpleCache\CacheInterface;
-use Psr\SimpleCache\InvalidArgumentException;
-use Rabbit\Base\Core\Timer;
-use Rabbit\Base\Exception\NotSupportedException;
-use Rabbit\Base\Helper\ArrayHelper;
-use Rabbit\DB\DataReader;
-use Rabbit\DB\Exception;
 use Throwable;
+use Rabbit\DB\Exception;
+use Rabbit\DB\DataReader;
+use Rabbit\Base\Core\Timer;
+use Psr\SimpleCache\CacheInterface;
+use Rabbit\Base\Helper\ArrayHelper;
+use Psr\Http\Message\ResponseInterface;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\Base\Exception\NotSupportedException;
 
 /**
  * Class Command
@@ -609,7 +608,7 @@ class Command extends \Rabbit\DB\Command
         $client = $this->db->getConn();
         $response = $client->post($this->db->getQueryString([
             'query' => $sql
-        ]), ['data' => System::readFile($file)]);
+        ]), ['data' => file_get_contents($file)]);
         return $this->parseResponse($response);
     }
 
@@ -637,7 +636,7 @@ class Command extends \Rabbit\DB\Command
         foreach ($files as $file) {
             $responses[] = $client->post($this->db->getQueryString([
                 'query' => $sql,
-            ]), ['data' => System::readFile($file)]);
+            ]), ['data' => file_get_contents($file)]);
         }
         return $responses;
     }

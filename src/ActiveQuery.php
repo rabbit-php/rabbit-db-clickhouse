@@ -5,7 +5,6 @@ namespace Rabbit\DB\ClickHouse;
 
 
 use Throwable;
-use ReflectionException;
 use Psr\SimpleCache\InvalidArgumentException;
 use Rabbit\ActiveRecord\ActiveRecordInterface;
 use Rabbit\Base\Exception\InvalidConfigException;

@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-use Rabbit\DB\ConnectionInterface;
 use Rabbit\DB\Exception;
 use Rabbit\DB\Expression;
 use Rabbit\DB\ExpressionInterface;
