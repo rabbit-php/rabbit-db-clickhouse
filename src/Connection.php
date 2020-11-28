@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -88,7 +89,7 @@ class Connection extends \Rabbit\DB\Connection
      */
     public function getConn(): Client
     {
-        return $this->client;
+        return clone $this->client;
     }
 
 
