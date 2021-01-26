@@ -215,7 +215,7 @@ class Command extends \Rabbit\DB\Command
                 if (!empty($ret = $cache->get($cacheKey))) {
                     $result = unserialize($ret);
                     if (is_array($result) && isset($result[0])) {
-                        $this->logQuery($rawSql . '; [Query result served from cache]', 'clickhouse');
+                        $this->logQuery($rawSql . '; [Query result read from cache]', 'clickhouse');
                         return $this->prepareResult($result[0], $method, $fetchMode);
                     }
                 }
