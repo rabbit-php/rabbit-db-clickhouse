@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -76,7 +77,9 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
                     }
                 }
             }
-            foreach ($table->toArray() as $name => $value) {
+            $tableArray = $table->toArray();
+            ksort($tableArray);
+            foreach ($tableArray as $name => $value) {
                 if (!$i) {
                     $names[] = $conn->quoteColumnName($name);
                     $updates[] = $conn->quoteColumnName($name) . "=values(" . $conn->quoteColumnName($name) . ")";
