@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -24,7 +25,7 @@ class ActiveRecord extends ActiveRecordActiveRecord
      */
     public static function getDb(): ConnectionInterface
     {
-        return getDI('clickhouse')->get();
+        return getDI('db')->get('clickhouse');
     }
 
     /**

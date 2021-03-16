@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -365,7 +366,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
      * @param array $params
      * @return string
      */
-    public function update(string $table, array $columns, $condition, array &$params): string
+    public function update(string $table, array $columns, $condition, array &$params = []): string
     {
         [$lines, $params] = $this->prepareUpdateSets($table, $columns, $params);
         $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' UPDATE ' . implode(', ', $lines);

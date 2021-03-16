@@ -9,6 +9,7 @@ use Rabbit\Base\App;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\Exception;
 use Rabbit\DB\QueryBuilder;
+use Rabbit\DB\QueryInterface;
 use Rabbit\HttpClient\Client;
 use Throwable;
 
@@ -43,6 +44,7 @@ class Connection extends \Rabbit\DB\Connection
     {
         parent::__construct($dsn);
         $this->createPdoInstance();
+        $this->driver = 'clickhouse';
     }
 
     /**
@@ -180,5 +182,10 @@ class Connection extends \Rabbit\DB\Connection
     public function getQueryString(array $query = []): string
     {
         return '?' . http_build_query(array_merge($this->query, $query));
+    }
+
+    public function buildQuery(): QueryInterface
+    {
+        return new Query($this);
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -7,7 +8,7 @@ use Rabbit\Base\Exception\InvalidConfigException;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\Pool\PdoPool;
 use Rabbit\DB\RetryHandler;
-use Rabbit\Pool\BaseManager;
+use Rabbit\DB\Manager;
 use Rabbit\Pool\PoolProperties;
 use Throwable;
 
@@ -29,8 +30,8 @@ class MakeCKConnection
     {
         $urlArr = parse_url($dsn);
         $driver = $urlArr['scheme'];
-        /** @var BaseManager $manager */
-        $manager = getDI($driver);
+        /** @var Manager $manager */
+        $manager = getDI('db');
         if (!$manager->has($name)) {
             $conn = [
                 'class' => $class,
@@ -72,7 +73,6 @@ class MakeCKConnection
             } else {
                 throw new InvalidConfigException("Not support driver $driver");
             }
-
         }
         return $driver;
     }
