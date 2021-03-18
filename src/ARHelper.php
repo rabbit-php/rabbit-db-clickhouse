@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Rabbit\DB\ClickHouse;
 
 use Rabbit\ActiveRecord\BaseActiveRecord;
+use Rabbit\Base\Core\Context;
 use Rabbit\Base\Exception\InvalidConfigException;
 use Rabbit\Base\Exception\NotSupportedException;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\DBHelper;
 use Rabbit\DB\Exception;
 use Rabbit\DB\Expression;
+use Rabbit\Pool\ConnectionInterface;
 use ReflectionException;
 use Throwable;
 
@@ -264,5 +266,38 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
             throw new Exception('Failed to delete the object for unknown reason.');
         }
         return $result;
+    }
+
+    public static function getModel(string $table, string $db): BaseActiveRecord
+    {
+        return new class($table, $db) extends ActiveRecord
+        {
+            /**
+             *  constructor.
+             * @param string $tableName
+             * @param string $dbName
+             */
+            public function __construct(string $tableName, string $dbName)
+            {
+                Context::set(md5(get_called_class() . 'tableName'), $tableName);
+                Context::set(md5(get_called_class() . 'dbName'), $dbName);
+            }
+
+            /**
+             * @return mixed|string
+             */
+            public static function tableName(): string
+            {
+                return Context::get(md5(get_called_class() . 'tableName'));
+            }
+
+            /**
+             * @return ConnectionInterface
+             */
+            public static function getDb(): ConnectionInterface
+            {
+                return getDI('db')->getConnection(Context::get(md5(get_called_class() . 'dbName')));
+            }
+        };
     }
 }
