@@ -199,48 +199,67 @@ class Command extends \Rabbit\DB\Command
         if ($this->getFormat() === null && strpos($rawSql, 'FORMAT ') === false) {
             $rawSql .= ' FORMAT JSON';
         }
-
-        if ($method !== '') {
-            $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
-            if (is_array($info)) {
-                /** @var CacheInterface $cache */
-                $cache = $info[0];
-                $cacheKey = array_filter([
-                    __CLASS__,
-                    $method,
-                    $fetchMode,
-                    $this->db->dsn,
-                    $rawSql,
-                ]);
-                if (!empty($ret = $cache->get($cacheKey))) {
-                    $result = unserialize($ret);
-                    if (is_array($result) && isset($result[0])) {
-                        $this->logQuery($rawSql . '; [Query result read from cache]', 'clickhouse');
-                        return $this->prepareResult($result[0], $method, $fetchMode);
+        $share = $this->share ?? $this->db->share;
+        $func = function () use ($method, &$rawSql, $fetchMode) {
+            if ($method !== '') {
+                $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
+                if (is_array($info)) {
+                    /** @var CacheInterface $cache */
+                    $cache = $info[0];
+                    $cacheKey = array_filter([
+                        __CLASS__,
+                        $method,
+                        $fetchMode,
+                        $this->db->dsn,
+                        $rawSql,
+                    ]);
+                    if (!empty($ret = $cache->get($cacheKey))) {
+                        $result = unserialize($ret);
+                        if (is_array($result) && isset($result[0])) {
+                            $this->logQuery($rawSql . '; [Query result read from cache]', 'clickhouse');
+                            return $this->prepareResult($result[0], $method, $fetchMode);
+                        }
                     }
                 }
             }
+
+            $this->logQuery($rawSql);
+
+            try {
+                $client = $this->db->getConn();
+                $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
+                $data = $this->parseResponse($response);
+                $result = $this->prepareResult($data, $method, $fetchMode);
+            } catch (\Throwable $e) {
+                throw new Exception("Query error: " . $e->getMessage());
+            }
+
+            if (isset($cache, $cacheKey, $info)) {
+                !$cache->has($cacheKey) && $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug(
+                    'Saved query result in cache',
+                    'clickhouse'
+                );
+            }
+
+            return $result;
+        };
+        if ($share > 0) {
+            $cacheKey = array_filter([
+                __CLASS__,
+                $method,
+                $fetchMode,
+                $this->db->dsn,
+                $rawSql ?: $rawSql = $this->getRawSql(),
+            ]);
+            $key = extension_loaded('igbinary') ? igbinary_serialize($cacheKey) : serialize($cacheKey);
+            $key = md5($key);
+            $s = share($key, $func, $share);
+            if ($s->getStatus() === SWOOLE_CHANNEL_CLOSED) {
+                $this->logQuery($rawSql . '; [Query result read from share]');
+            }
+            return $s->result;
         }
-
-        $this->logQuery($rawSql);
-
-        try {
-            $client = $this->db->getConn();
-            $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
-            $data = $this->parseResponse($response);
-            $result = $this->prepareResult($data, $method, $fetchMode);
-        } catch (\Throwable $e) {
-            throw new Exception("Query error: " . $e->getMessage());
-        }
-
-        if (isset($cache, $cacheKey, $info)) {
-            !$cache->has($cacheKey) && $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug(
-                'Saved query result in cache',
-                'clickhouse'
-            );
-        }
-
-        return $result;
+        return $func();
     }
 
     /**

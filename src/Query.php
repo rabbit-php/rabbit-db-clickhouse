@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -6,7 +7,6 @@ namespace Rabbit\DB\ClickHouse;
 use DI\DependencyException;
 use DI\NotFoundException;
 use Rabbit\DB\BatchQueryResult;
-use Rabbit\DB\Command;
 use Rabbit\DB\Exception;
 use Rabbit\DB\Expression;
 use Rabbit\Pool\ConnectionInterface;
@@ -54,9 +54,9 @@ class Query extends \Rabbit\DB\Query
     public function createCommand(): Command
     {
         list($sql, $params) = $this->db->getQueryBuilder()->build($this);
-
-
         $this->command = $this->db->createCommand($sql, $params);
+        $this->command->share($this->share);
+        $this->setCommandCache($this->command);
         return $this->command;
     }
 
