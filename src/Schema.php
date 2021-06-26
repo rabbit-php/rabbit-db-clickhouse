@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -44,9 +45,9 @@ class Schema extends \Rabbit\DB\Schema
         'Enum16' => self::TYPE_STRING,
 
         'Nullable(UInt8)' => self::TYPE_SMALLINT,
-        'Nullable(UInt16' => self::TYPE_INTEGER,
-        'Nullable(UInt32' => self::TYPE_INTEGER,
-        'Nullable(UInt64' => self::TYPE_BIGINT,
+        'Nullable(UInt16)' => self::TYPE_INTEGER,
+        'Nullable(UInt32)' => self::TYPE_INTEGER,
+        'Nullable(UInt64)' => self::TYPE_BIGINT,
         'Nullable(Int8)' => self::TYPE_SMALLINT,
         'Nullable(Int16)' => self::TYPE_INTEGER,
         'Nullable(Int32)' => self::TYPE_INTEGER,
@@ -187,10 +188,17 @@ class Schema extends \Rabbit\DB\Schema
      */
     protected function loadTableSchema(string $name): ?\Rabbit\DB\TableSchema
     {
+        $database = $this->db->database === null ? 'default' : $this->db->database;
+        if (stripos($name, '.')) {
+            $schemaData = explode('.', $name);
+            $database = $schemaData[0];
+            $name = $schemaData[1];
+        }
+
         $sql = 'SELECT * FROM system.columns WHERE `table`=:name and `database`=:database FORMAT JSON';
         $result = $this->db->createCommand($sql, [
             ':name' => $name,
-            ':database' => $this->db->database === null ? 'default' : $this->db->database
+            ':database' => $database
         ])->queryAll();
 
         if ($result && isset($result[0])) {
