@@ -40,6 +40,11 @@ class Command extends \Rabbit\DB\Command
     protected array $statistics = [];
     protected int $rows_before_limit_at_least = 0;
 
+    public function __destruct()
+    {
+        
+    }
+
     /**
      * @return string
      */
