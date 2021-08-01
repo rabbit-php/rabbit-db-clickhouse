@@ -142,15 +142,9 @@ class Command extends \Rabbit\DB\Command
      * @throws InvalidArgumentException
      * @throws Throwable
      */
-    public function queryScalar(): ?string
+    public function queryScalar()
     {
-        $result = $this->queryInternal(self::FETCH_SCALAR, 0);
-        if (is_array($result)) {
-            return current($result);
-        } elseif ($result !== null && $result !== false) {
-            return (string)$result;
-        }
-        return null;
+        return $this->queryInternal(self::FETCH_SCALAR, 0);
     }
 
     /**
