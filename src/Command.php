@@ -166,7 +166,7 @@ class Command extends \Rabbit\DB\Command
             $rawSql .= ' FORMAT JSON';
         }
         $share = $this->share ?? $this->db->share;
-        $func = function () use ($method, &$rawSql, $fetchMode) {
+        $func = function () use ($method, $rawSql, $fetchMode) {
             if ($method !== '') {
                 $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
                 if (is_array($info)) {
