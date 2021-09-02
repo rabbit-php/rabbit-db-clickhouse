@@ -12,6 +12,7 @@ use Psr\SimpleCache\CacheInterface;
 use Rabbit\Base\Helper\ArrayHelper;
 use Psr\Http\Message\ResponseInterface;
 use Psr\SimpleCache\InvalidArgumentException;
+use Rabbit\Base\App;
 use Rabbit\Base\Exception\NotSupportedException;
 
 /**
@@ -121,7 +122,7 @@ class Command extends \Rabbit\DB\Command
 
         $this->logQuery($rawSql, 'clickhouse');
         $client = $this->db->getConn();
-        $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
+        $response = $client->post($this->db->getQueryString(), ['data' => &$rawSql]);
         return $this->parseResponse($response) === true ? 1 : 0;
     }
 
@@ -165,7 +166,7 @@ class Command extends \Rabbit\DB\Command
             $rawSql .= ' FORMAT JSON';
         }
         $share = $this->share ?? $this->db->share;
-        $func = function () use ($method, $rawSql, $fetchMode) {
+        $func = function () use ($method, &$rawSql, $fetchMode) {
             if ($method !== '') {
                 $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
                 if (is_array($info)) {
@@ -192,7 +193,7 @@ class Command extends \Rabbit\DB\Command
 
             try {
                 $client = $this->db->getConn();
-                $response = $client->post($this->db->getQueryString(), ['data' => $rawSql]);
+                $response = $client->post($this->db->getQueryString(), ['data' => &$rawSql]);
                 $data = $this->parseResponse($response);
                 $result = $this->prepareResult($data, $method, $fetchMode);
             } catch (\Throwable $e) {
