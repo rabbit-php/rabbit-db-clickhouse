@@ -182,14 +182,15 @@ class Command extends \Rabbit\DB\Command
                     if (!empty($ret = $cache->get($cacheKey))) {
                         $result = unserialize($ret);
                         if (is_array($result) && isset($result[0])) {
-                            $this->logQuery($rawSql . '; [Query result read from cache]', 'clickhouse');
+                            $rawSql .= '; [Query result read from cache]';
+                            $this->logQuery($rawSql, 'clickhouse');
                             return $this->prepareResult($result[0], $method, $fetchMode);
                         }
                     }
                 }
             }
 
-            $this->logQuery($rawSql);
+            $this->logQuery($rawSql, 'clickhouse');
 
             try {
                 $client = $this->db->getConn();
@@ -221,7 +222,8 @@ class Command extends \Rabbit\DB\Command
             $key = md5($key);
             $s = share($key, $func, $share);
             if ($s->getStatus() === SWOOLE_CHANNEL_CLOSED) {
-                $this->logQuery($rawSql . '; [Query result read from share]');
+                $rawSql .= '; [Query result read from share]';
+                $this->logQuery($rawSql, 'clickhouse');
             }
             return $s->result;
         }
