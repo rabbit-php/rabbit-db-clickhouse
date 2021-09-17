@@ -39,8 +39,8 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         if (ArrayHelper::isAssociative($array_columns)) {
             $array_columns = [$array_columns];
         }
-        $keys = $model::primaryKey();
-        $conn = $model::getDb();
+        $keys = $model->primaryKey();
+        $conn = $model->getDb();
         if ($keys && !is_array($keys)) {
             $keys = [$keys];
         }
@@ -117,20 +117,20 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
      * @throws InvalidConfigException
      * @throws ReflectionException
      */
-    public static function updateSeveral(BaseActiveRecord $model, array $array_columns): int
+    public static function updateSeveral(BaseActiveRecord $model, array $array_columns, array $when = null): int
     {
         if (ArrayHelper::isAssociative($array_columns)) {
             $array_columns = [$array_columns];
         }
-        $keys = $model::primaryKey();
-        $conn = $model::getDb();
+        $keys = $model->primaryKey();
+        $conn = $model->getDb();
         if (empty($keys)) {
-            throw new Exception("The table " . $model::tableName() . ' must have one or more primarykey to call updateSeveral function!');
+            throw new Exception("The table " . $model->tableName() . ' must have one or more primarykey to call updateSeveral function!');
         }
         if (!is_array($keys)) {
             $keys = [$keys];
         }
-        $sql = 'ALTER TABLE ' . $conn->quoteTableName($model::tableName()) . ' update ';
+        $sql = 'ALTER TABLE ' . $conn->quoteTableName($model->tableName()) . ' update ';
         $columns = array_keys(current($array_columns));
         $sets = [];
         $bindings = [];
@@ -219,10 +219,10 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
      * @throws NotSupportedException
      * @throws Throwable
      */
-    public static function update(BaseActiveRecord $model, array $body, bool $batch = true, bool $useOrm = false): array
+    public static function update(BaseActiveRecord $model, array $body, bool $onlyUpdate = false, array $when = null, bool $batch = true): array
     {
         if (isset($body['condition']) && $body['condition']) {
-            $result = $model::updateAll($body['edit'], DBHelper::Search((new Query()), $body['condition'])->where);
+            $result = $model->updateAll($body['edit'], DBHelper::Search((new Query()), $body['condition'])->where);
             if ($result === false) {
                 throw new Exception('Failed to update the object for unknown reason.');
             }
@@ -234,7 +234,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
                 $result = [];
                 $exists = self::findExists($model, $body);
                 foreach ($body as $params) {
-                    $res = self::updateModel(clone $model, $params, self::checkExist($params, $exists, $model::primaryKey()));
+                    $res = self::updateModel(clone $model, $params, self::checkExist($params, $exists, $model->primaryKey()));
                     $result[] = $res;
                 }
             } else {
@@ -260,7 +260,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         if (ArrayHelper::isIndexed($body)) {
             $result = self::deleteSeveral($model, $body);
         } else {
-            $result = $model::deleteAll(DBHelper::Search((new Query()), $body)->where);
+            $result = $model->deleteAll(DBHelper::Search((new Query()), $body)->where);
         }
         if ($result) {
             throw new Exception('Failed to delete the object for unknown reason.');
@@ -268,35 +268,14 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         return $result;
     }
 
-    public static function getModel(string $table, string $db): BaseActiveRecord
+    public static function getModel(string $table, string|ConnectionInterface $db): BaseActiveRecord
     {
         return new class($table, $db) extends ActiveRecord
         {
-            /**
-             *  constructor.
-             * @param string $tableName
-             * @param string $dbName
-             */
-            public function __construct(string $tableName, string $dbName)
+            public function __construct(string $tableName, string|ConnectionInterface $dbName)
             {
-                Context::set(md5(get_called_class() . 'tableName'), $tableName);
-                Context::set(md5(get_called_class() . 'dbName'), $dbName);
-            }
-
-            /**
-             * @return mixed|string
-             */
-            public static function tableName(): string
-            {
-                return Context::get(md5(get_called_class() . 'tableName'));
-            }
-
-            /**
-             * @return ConnectionInterface
-             */
-            public static function getDb(): ConnectionInterface
-            {
-                return getDI('db')->getConnection(Context::get(md5(get_called_class() . 'dbName')));
+                $this->tableName = $tableName;
+                $this->db = is_string($dbName) ? getDI('db')->get($dbName) : $dbName;
             }
         };
     }

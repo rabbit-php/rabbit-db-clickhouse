@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
+use Generator;
 use Rabbit\DB\Exception;
 use Rabbit\DB\Expression;
 use Rabbit\DB\ExpressionInterface;
@@ -16,9 +17,6 @@ use Rabbit\DB\QueryInterface;
  */
 class QueryBuilder extends \Rabbit\DB\QueryBuilder
 {
-    /**
-     * Clickhouse data types
-     */
     public array $typeMap = [
         Schema::TYPE_CHAR => 'FixedString(1)',
         Schema::TYPE_STRING => 'String',
@@ -37,10 +35,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         Schema::TYPE_MONEY => 'Float32',
     ];
 
-    /**
-     * @param QueryInterface $query
-     */
-    private function prepareFromByModel(QueryInterface $query)
+    private function prepareFromByModel(QueryInterface $query): void
     {
         if (empty($query->from) && $query instanceof ActiveQuery && !empty($query->modelClass)) {
             $modelClass = $query->modelClass;
@@ -48,13 +43,6 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         }
     }
 
-
-    /**
-     * @param Query $query
-     * @param array $params
-     * @return array
-     * @throws Exception
-     */
     public function build(Query $query, array $params = []): array
     {
         $query = $query->prepare($this);
@@ -113,44 +101,22 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return [$sql, $params];
     }
 
-    /**
-     * @param bool $condition
-     * @return string the WITH TOTALS
-     */
     public function buildWithTotals(bool $condition): string
     {
         return $condition === true ? ' WITH TOTALS ' : '';
     }
 
-    /**
-     * @param string|array $condition
-     * @param array $params the binding parameters to be populated
-     * @return string the PREWHERE clause built from [[Query::$preWhere]].
-     */
-    public function buildPreWhere($condition, array &$params): string
+    public function buildPreWhere(string|array $condition, array &$params): string
     {
         $where = $this->buildCondition($condition, $params);
         return $where === '' ? '' : 'PREWHERE ' . $where;
     }
 
-    /**
-     * @param string|array $condition
-     * @return string the SAMPLE clause built from [[Query::$sample]].
-     */
     public function buildSample(?string $condition): string
     {
         return $condition !== null ? ' SAMPLE ' . $condition : '';
     }
 
-    /**
-     * Set default engine option if don't set
-     *
-     * @param string $table
-     * @param array $columns
-     * @param string $options
-     * @return mixed
-     * @throws Exception
-     */
     public function createTable(string $table, array $columns, string $options = null): string
     {
         if ($options === null) {
@@ -159,11 +125,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return parent::createTable($table, $columns, $options);
     }
 
-    /**
-     * @param \Rabbit\DB\ColumnSchemaBuilder|string $type
-     * @return string
-     */
-    public function getColumnType($type): string
+    public function getColumnType(\Rabbit\DB\ColumnSchemaBuilder|string $type): string
     {
         if ($type instanceof ColumnSchemaBuilder) {
             $type = $type->__toString();
@@ -184,11 +146,6 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return $type;
     }
 
-    /**
-     * @param int|null $limit
-     * @param int|null $offset
-     * @return string
-     */
     public function buildLimit(?int $limit, ?int $offset): string
     {
         $sql = '';
@@ -203,10 +160,6 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return ltrim($sql);
     }
 
-    /**
-     * @param array $limitBy
-     * @return string
-     */
     public function buildLimitBy(?array $limitBy): string
     {
         if (empty($limitBy)) {
@@ -216,13 +169,6 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return 'LIMIT ' . $n . ' BY ' . implode(',', $limitBy[1]);
     }
 
-
-    /**
-     * @param array|null $unions
-     * @param array $params
-     * @return string
-     * @throws Exception
-     */
     public function buildUnion(?array $unions, array &$params): string
     {
         if (empty($unions)) {
@@ -243,17 +189,11 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return trim($result);
     }
 
-    /**
-     * @inheritdoc
-     */
     public function selectExists(string $rawSql): string
     {
         return 'SELECT count(*) FROM (' . $rawSql . ')';
     }
 
-    /**
-     * @inheritdoc
-     */
     public function addColumn(string $table, string $column, string $type): string
     {
         return 'ALTER TABLE ' . $this->db->quoteTableName($table)
@@ -261,14 +201,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
             . $this->getColumnType($type);
     }
 
-    /**
-     * @param string $table
-     * @param array|Query $columns
-     * @param array $params
-     * @return array
-     * @throws Exception
-     */
-    protected function prepareInsertValues(string $table, $columns, array $params = []): array
+    protected function prepareInsertValues(string $table, array|Query $columns, array $params = []): array
     {
         $schema = $this->db->getSchema();
         $tableSchema = $schema->getTableSchema($table);
@@ -302,14 +235,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return [$names, $placeholders, $values, $params];
     }
 
-    /**
-     * @param string $table
-     * @param array $columns
-     * @param array|\Generator $rows
-     * @param array $params
-     * @return string
-     */
-    public function batchInsert(string $table, array $columns, $rows, array &$params = []): string
+    public function batchInsert(string $table, array $columns, array|Generator $rows, array &$params = []): string
     {
         if (empty($rows)) {
             return '';
@@ -359,14 +285,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
             . ' (' . implode(', ', $columns) . ') VALUES ' . implode(', ', $values);
     }
 
-    /**
-     * @param string $table
-     * @param array $columns
-     * @param array|string $condition
-     * @param array $params
-     * @return string
-     */
-    public function update(string $table, array $columns, $condition, array &$params = []): string
+    public function update(string $table, array $columns, array|string $condition, array &$params = []): string
     {
         [$lines, $params] = $this->prepareUpdateSets($table, $columns, $params);
         $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' UPDATE ' . implode(', ', $lines);
@@ -374,13 +293,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return $where === '' ? $sql : $sql . ' ' . $where;
     }
 
-    /**
-     * @param string $table
-     * @param array|string $condition
-     * @param array $params
-     * @return string
-     */
-    public function delete(string $table, $condition, array &$params): string
+    public function delete(string $table, array|string $condition, array &$params): string
     {
         $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' DELETE ';
         $where = $this->buildWhere($condition, $params);

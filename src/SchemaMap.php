@@ -9,9 +9,6 @@ namespace Rabbit\DB\ClickHouse;
  */
 class SchemaMap
 {
-    /**
-     * @var array|\string[][]
-     */
     public static array $map = [
         'mysql' => [
             'UNSIGNED TINYINT' => 'UInt8',

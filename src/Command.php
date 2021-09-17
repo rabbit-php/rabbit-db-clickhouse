@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
+use Generator;
 use Throwable;
 use Rabbit\DB\Exception;
 use Rabbit\DB\DataReader;
@@ -11,9 +12,8 @@ use Rabbit\Base\Core\Timer;
 use Psr\SimpleCache\CacheInterface;
 use Rabbit\Base\Helper\ArrayHelper;
 use Psr\Http\Message\ResponseInterface;
-use Psr\SimpleCache\InvalidArgumentException;
 use Rabbit\Base\App;
-use Rabbit\Base\Exception\NotSupportedException;
+use Rabbit\DB\Query;
 
 /**
  * Class Command
@@ -45,48 +45,28 @@ class Command extends \Rabbit\DB\Command
     {
     }
 
-    /**
-     * @return string
-     */
     public function getFormat(): ?string
     {
         return $this->format;
     }
 
-    /**
-     * @param string|null $format
-     * @return $this
-     */
     public function setFormat(?string $format): self
     {
         $this->format = $format;
         return $this;
     }
 
-    /**
-     * @return array
-     */
     public function getOptions(): array
     {
         return $this->options;
     }
 
-    /**
-     * @param array $options
-     * @return $this
-     */
     public function setOptions(array $options): self
     {
         $this->options = $options;
         return $this;
     }
 
-    /**
-     * Adds more options to already defined ones.
-     * Please refer to [[setOptions()]] on how to specify options.
-     * @param array $options additional options
-     * @return $this self reference.
-     */
     public function addOptions(array $options): self
     {
         foreach ($options as $key => $value) {
@@ -115,7 +95,6 @@ class Command extends \Rabbit\DB\Command
         return $this;
     }
 
-
     public function execute(): int
     {
         $rawSql = $this->getRawSql();
@@ -126,35 +105,17 @@ class Command extends \Rabbit\DB\Command
         return $this->parseResponse($response) === true ? 1 : 0;
     }
 
-
-    /**
-     * @return array|null
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     */
     public function queryColumn(): ?array
     {
         return $this->queryInternal(self::FETCH_COLUMN);
     }
 
-    /**
-     * @return string|null
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     */
-    public function queryScalar()
+    public function queryScalar(): null|string|bool|int|float|array
     {
         return $this->queryInternal(self::FETCH_SCALAR, 0);
     }
 
-    /**
-     * @param string $method
-     * @param int $fetchMode
-     * @return array|mixed|null
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     */
-    protected function queryInternal(?string $method, int $fetchMode = null)
+    protected function queryInternal(?string $method, int $fetchMode = null): null|string|bool|int|float|array|DataReader
     {
         $rawSql = $this->getRawSql();
         if ($method == self::FETCH) {
@@ -230,11 +191,6 @@ class Command extends \Rabbit\DB\Command
         return $func();
     }
 
-    /**
-     * @param string|null $path
-     * @return string
-     * @throws Throwable
-     */
     public function download(?string $path = null): string
     {
         $rawSql = $this->getRawSql();
@@ -304,11 +260,6 @@ class Command extends \Rabbit\DB\Command
         return $result;
     }
 
-    /**
-     * @param $result
-     * @return array
-     * @throws Exception
-     */
     protected function getStatementData(array $result): array
     {
         return [
@@ -322,14 +273,7 @@ class Command extends \Rabbit\DB\Command
         ];
     }
 
-    /**
-     * @param array $result
-     * @param string $method
-     * @param int $fetchMode
-     * @return array|mixed|null
-     * @throws Exception
-     */
-    private function prepareResult(array $result, string $method = null, int $fetchMode = null)
+    private function prepareResult(array $result, string $method = null, int $fetchMode = null): null|string|bool|int|float|array
     {
         $this->prepareResponseData($result);
         $result = ArrayHelper::getValue($result, 'data', []);
@@ -360,13 +304,7 @@ class Command extends \Rabbit\DB\Command
         return $result;
     }
 
-
-    /**
-     * @param ResponseInterface $client
-     * @return mixed|string
-     * @throws Exception
-     */
-    private function parseResponse(ResponseInterface $client)
+    private function parseResponse(ResponseInterface $client): bool|string|array
     {
         if ($client->getStatusCode() !== 200) {
             throw new Exception((string)$client->getBody());
@@ -388,9 +326,6 @@ class Command extends \Rabbit\DB\Command
         return $result === "" ? true : $result;
     }
 
-    /**
-     * @param $result
-     */
     private function prepareResponseData(array $result): void
     {
         $this->isResult = true;
@@ -401,35 +336,20 @@ class Command extends \Rabbit\DB\Command
         }
     }
 
-    /**
-     * @throws Exception
-     */
-    private function ensureQueryExecuted()
+    private function ensureQueryExecuted(): void
     {
         if (true !== $this->isResult) {
             throw new Exception('Query was not executed yet');
         }
     }
 
-    /**
-     * get meta columns information
-     * @return mixed
-     * @throws Exception
-     */
-    public function getMeta()
+    public function getMeta(): ?array
     {
         $this->ensureQueryExecuted();
         return $this->meta;
     }
 
-    /**
-     * get all data result
-     * @return mixed|array
-     * @throws Exception
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     */
-    public function getData()
+    public function getData(): ?array
     {
         if ($this->isResult === null && !empty($this->sql)) {
             $this->queryInternal(null);
@@ -438,19 +358,6 @@ class Command extends \Rabbit\DB\Command
         return $this->data;
     }
 
-    /**
-     * Generation sql `create table` for meta (only select query)
-     *
-     * ```php
-     * $sql = 'SELECT sum(click) as sum_click, event_date FROM table_name GROUP BY event_date LIMIT 10';
-     * $command = $connection->createCommand($sql);
-     * $data = $command->queryAll();
-     * $schemaSql = $command->getSchemaQuery();
-     * ```
-     *
-     * @return string
-     * @throws Exception
-     */
     public function getSchemaQuery(): string
     {
         $sql = $this->sql;
@@ -469,94 +376,44 @@ class Command extends \Rabbit\DB\Command
         return $table;
     }
 
-    /**
-     * @return int
-     * @throws Exception
-     */
     public function getTotals(): int
     {
         $this->ensureQueryExecuted();
         return $this->totals;
     }
 
-
-    /**
-     * @return array
-     * @throws Exception
-     */
     public function getExtremes(): array
     {
         $this->ensureQueryExecuted();
         return $this->extremes;
     }
 
-    /**
-     * @return int
-     * @throws Exception
-     */
     public function getRows(): int
     {
         $this->ensureQueryExecuted();
         return $this->rows;
     }
 
-    /**
-     * @return int
-     * @throws Exception
-     */
     public function getCountAll(): int
     {
         $this->ensureQueryExecuted();
         return $this->rows_before_limit_at_least;
     }
 
-    /**
-     * @return array
-     * @throws Exception
-     */
     public function getStatistics(): array
     {
         $this->ensureQueryExecuted();
         return $this->statistics;
     }
 
-    /**
-     * Creates an INSERT command.
-     * For example,
-     *
-     * ```php
-     * $connection->createCommand()->insert('user', [
-     *     'name' => 'Sam',
-     *     'age' => 30,
-     * ])->execute();
-     * ```
-     *
-     * The method will properly escape the column names, and bind the values to be inserted.
-     *
-     * Note that the created command is not executed until [[execute()]] is called.
-     *
-     * @param string $table the table that new rows will be inserted into.
-     * @param array $columns the column data (name => value) to be inserted into the table.
-     * @return $this the command object itself
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     * @throws NotSupportedException
-     */
-    public function insert(string $table, $columns): self
+    public function insert(string $table, array|Query $columns): self
     {
         $params = [];
         $sql = $this->db->getQueryBuilder()->insert($table, $columns, $params);
         return $this->setSql($sql)->bindValues($params);
     }
 
-    /**
-     * @param string $table
-     * @param string $rows
-     * @return bool|mixed|string
-     * @throws Exception
-     * @throws Throwable
-     */
-    public function insertJsonRows(string $table, string &$rows)
+    public function insertJsonRows(string $table, string &$rows): bool|string|array
     {
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
         $this->logQuery($sql, 'clickhouse');
@@ -573,15 +430,7 @@ class Command extends \Rabbit\DB\Command
         return $this->parseResponse($response);
     }
 
-    /**
-     * @param string $table
-     * @param array|null $columns
-     * @param string $file
-     * @param string $format
-     * @return bool|mixed|string
-     * @throws Throwable
-     */
-    public function insertFile(string $table, array $columns = null, string $file = '', string $format = 'CSV')
+    public function insertFile(string $table, array $columns = null, string $file = '', string $format = 'CSV'): bool|string|array
     {
         if ($columns === null) {
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
@@ -599,15 +448,7 @@ class Command extends \Rabbit\DB\Command
         return $this->parseResponse($response);
     }
 
-    /**
-     * @param string $table
-     * @param array|null $columns
-     * @param array $files
-     * @param string $format
-     * @return array
-     * @throws Throwable
-     */
-    public function batchInsertFiles(string $table, ?array $columns = null, array $files = [], string $format = 'CSV')
+    public function batchInsertFiles(string $table, ?array $columns = null, array $files = [], string $format = 'CSV'): array
     {
         if ($columns === null) {
             $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
@@ -628,23 +469,7 @@ class Command extends \Rabbit\DB\Command
         return $responses;
     }
 
-    /**
-     * Creates a batch INSERT command.
-     * For example,
-     *
-     * ```php
-     * $connection->createCommand()->batchInsert('user', ['name', 'age'], [
-     *     ['Tom', 30],
-     *     ['Jane', 20],
-     *     ['Linda', 25],
-     * ])->execute();
-     * ```
-     * @param string $table
-     * @param array $columns
-     * @param $rows
-     * @return Command
-     */
-    public function batchInsert(string $table, array $columns, $rows): self
+    public function batchInsert(string $table, array $columns, array|Generator $rows): self
     {
         $sql = $this->db->getQueryBuilder()->batchInsert($table, $columns, $rows);
         return $this->setSql($sql);

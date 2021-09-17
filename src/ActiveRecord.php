@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-use Throwable;
 use Rabbit\Base\App;
-use ReflectionException;
-use DI\NotFoundException;
-use DI\DependencyException;
 use Rabbit\ActiveRecord\ActiveQuery;
 use Rabbit\Pool\ConnectionInterface;
 use Rabbit\ActiveRecord\ActiveRecord as ActiveRecordActiveRecord;
@@ -19,46 +15,39 @@ use Rabbit\ActiveRecord\ActiveRecord as ActiveRecordActiveRecord;
  */
 class ActiveRecord extends ActiveRecordActiveRecord
 {
-    /**
-     * @return ConnectionInterface
-     * @throws Throwable
-     */
-    public static function getDb(): ConnectionInterface
+    public function __construct(string|ConnectionInterface $db = null)
     {
-        return getDI('db')->get('clickhouse');
+        if (is_string($db)) {
+            $this->db = getDI('db')->get($db);
+        } elseif ($db === null) {
+            $this->getDb();
+        } else {
+            $this->db = $db;
+        }
     }
 
-    /**
-     * @return ActiveQuery
-     * @throws DependencyException
-     * @throws NotFoundException
-     */
-    public static function find(): ActiveQuery
+    public function getDb(): ConnectionInterface
+    {
+        $this->db = $this->db ?? getDI('db')->get('clickhouse');
+        return $this->db;
+    }
+
+    public function setDb(ConnectionInterface $db): self
+    {
+        $this->db = $db;
+        return $this;
+    }
+
+    public function find(): ActiveQuery
     {
         return create(ActiveQuery::class, ['modelClass' => get_called_class()], false);
     }
 
-    /**
-     * Returns the primary key **name(s)** for this AR class.
-     *
-     * Note that an array should be returned even when the record only has a single primary key.
-     *
-     * For the primary key **value** see [[getPrimaryKey()]] instead.
-     *
-     * @return string[] the primary key name(s) for this AR class.
-     */
-    public static function primaryKey(): array
+    public function primaryKey(): array
     {
         return ['id'];
     }
 
-    /**
-     * @param bool $runValidation
-     * @param array|null $attributes
-     * @return bool
-     * @throws Throwable
-     * @throws ReflectionException
-     */
     public function insert(bool $runValidation = true, array $attributes = null): bool
     {
         if ($runValidation && !$this->validate($attributes)) {
@@ -67,7 +56,7 @@ class ActiveRecord extends ActiveRecordActiveRecord
         }
 
         $values = $this->getDirtyAttributes($attributes);
-        if ((static::getDb()->getSchema()->insert(static::tableName(), $values)) === false) {
+        if (($this->db->getSchema()->insert($this->tableName(), $values)) === false) {
             return false;
         }
 

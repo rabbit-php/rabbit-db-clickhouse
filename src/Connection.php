@@ -19,27 +19,19 @@ use Throwable;
  */
 class Connection extends \Rabbit\DB\Connection
 {
-    /**
-     * @var string
-     */
     protected string $commandClass = Command::class;
     protected string $schemaClass = Schema::class;
 
     public array $schemaMap = [
         'clickhouse' => Schema::class
     ];
-    /** @var Client */
+
     protected Client $client;
-    /** @var string */
+
     public string $database = 'default';
-    /** @var array */
+
     protected array $query = [];
 
-    /**
-     * Connection constructor.
-     * @param string $dsn
-     * @throws Exception
-     */
     public function __construct(string $dsn)
     {
         parent::__construct($dsn);
@@ -47,11 +39,7 @@ class Connection extends \Rabbit\DB\Connection
         $this->driver = 'clickhouse';
     }
 
-    /**
-     * @return void
-     * @throws Exception
-     */
-    public function createPdoInstance()
+    public function createPdoInstance(): object
     {
         $parsed = $this->parseDsn;
         if (!in_array($parsed['scheme'], ['clickhouse', 'clickhouses'])) {
@@ -84,11 +72,9 @@ class Connection extends \Rabbit\DB\Connection
         isset($parsed['user']) && $options['auth']['username'] = $parsed['user'];
         isset($parsed['pass']) && $options['auth']['password'] = $parsed['pass'];
         $this->client = new Client($options);
+        return $this->client;
     }
 
-    /**
-     * @return Client
-     */
     public function getConn(): Client
     {
         return clone $this->client;
@@ -100,12 +86,6 @@ class Connection extends \Rabbit\DB\Connection
         return false;
     }
 
-    /**
-     * @param string $str
-     * @return string
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     */
     public function quoteValue(string $str): string
     {
         return $this->getSchema()->quoteValue($str);
@@ -116,21 +96,12 @@ class Connection extends \Rabbit\DB\Connection
         return $sql;
     }
 
-    /**
-     * Closes the connection when this component is being serialized.
-     * @return array
-     * @throws Throwable
-     */
     public function __sleep()
     {
         $this->close();
         return array_keys(get_object_vars($this));
     }
 
-
-    /**
-     * @throws Throwable
-     */
     public function close(): void
     {
         if ($this->getIsActive()) {
@@ -138,9 +109,6 @@ class Connection extends \Rabbit\DB\Connection
         }
     }
 
-    /**
-     * @return \Rabbit\DB\Schema
-     */
     public function getSchema(): \Rabbit\DB\Schema
     {
         if ($this->schema !== null) {
@@ -149,36 +117,21 @@ class Connection extends \Rabbit\DB\Connection
         return $this->schema = new $this->schemaClass($this);
     }
 
-    /**
-     * @param string $name
-     * @return string
-     */
     public function quoteTableName(string $name): string
     {
         return $name;
     }
 
-    /**
-     * @param string $name
-     * @return string
-     */
     public function quoteColumnName(string $name): string
     {
         return $name;
     }
 
-    /**
-     * @return QueryBuilder
-     */
     public function getQueryBuilder(): QueryBuilder
     {
         return $this->getSchema()->getQueryBuilder();
     }
 
-    /**
-     * @param array $query
-     * @return string
-     */
     public function getQueryString(array $query = []): string
     {
         return '?' . http_build_query(array_merge($this->query, $query));
