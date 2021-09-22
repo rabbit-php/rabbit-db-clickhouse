@@ -16,22 +16,9 @@ use Rabbit\Pool\ConnectionInterface;
 use ReflectionException;
 use Throwable;
 
-/**
- * Class ARHelper
- * @package Rabbit\DB\ClickHouse
- */
 class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 {
-    /**
-     * @param BaseActiveRecord $model
-     * @param array $array_columns
-     * @return int
-     * @throws Exception
-     * @throws InvalidConfigException
-     * @throws ReflectionException
-     * @throws Throwable
-     */
-    public static function insertSeveral(BaseActiveRecord $model, array $array_columns): int
+    public static function insertSeveral(BaseActiveRecord $model, array &$array_columns): int
     {
         $sql = '';
         $params = array();
@@ -109,15 +96,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         return count($array_columns);
     }
 
-    /**
-     * @param BaseActiveRecord $model
-     * @param array $array_columns
-     * @return int
-     * @throws Exception
-     * @throws InvalidConfigException
-     * @throws ReflectionException
-     */
-    public static function updateSeveral(BaseActiveRecord $model, array $array_columns, array $when = null): int
+    public static function updateSeveral(BaseActiveRecord $model, array &$array_columns, array $when = null): int
     {
         if (ArrayHelper::isAssociative($array_columns)) {
             $array_columns = [$array_columns];
@@ -191,16 +170,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         return count($array_columns);
     }
 
-    /**
-     * @param BaseActiveRecord $model
-     * @param array $body
-     * @param bool $batch
-     * @return array|int[]
-     * @throws InvalidConfigException
-     * @throws ReflectionException
-     * @throws Throwable
-     */
-    public static function create(BaseActiveRecord $model, array $body, bool $batch = true): array
+    public static function create(BaseActiveRecord $model, array &$body, bool $batch = true): array
     {
         if (!ArrayHelper::isIndexed($body)) {
             $body = [$body];
@@ -209,17 +179,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         return is_array($result) ? $result : [$result];
     }
 
-    /**
-     * @param BaseActiveRecord $model
-     * @param array $body
-     * @param bool $batch
-     * @param bool $useOrm
-     * @return array
-     * @throws Exception
-     * @throws NotSupportedException
-     * @throws Throwable
-     */
-    public static function update(BaseActiveRecord $model, array $body, bool $onlyUpdate = false, array $when = null, bool $batch = true): array
+    public static function update(BaseActiveRecord $model, array &$body, bool $onlyUpdate = false, array $when = null, bool $batch = true): array
     {
         if (isset($body['condition']) && $body['condition']) {
             $result = $model->updateAll($body['edit'], DBHelper::Search((new Query()), $body['condition'])->where);
@@ -244,18 +204,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         return is_array($result) ? $result : [$result];
     }
 
-    /**
-     * @param BaseActiveRecord $model
-     * @param array $body
-     * @param bool $useOrm
-     * @return int
-     * @throws Exception
-     * @throws InvalidConfigException
-     * @throws NotSupportedException
-     * @throws ReflectionException
-     * @throws Throwable
-     */
-    public static function delete(BaseActiveRecord $model, array $body, bool $useOrm = false): int
+    public static function delete(BaseActiveRecord $model, array &$body, bool $useOrm = false): int
     {
         if (ArrayHelper::isIndexed($body)) {
             $result = self::deleteSeveral($model, $body);
