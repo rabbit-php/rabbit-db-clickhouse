@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-use DI\DependencyException;
-use DI\NotFoundException;
 use Rabbit\DB\BatchQueryResult;
+use Rabbit\DB\Command;
 use Rabbit\DB\Exception;
 use Rabbit\DB\Expression;
 use Rabbit\Pool\ConnectionInterface;
-use ReflectionException;
-use Throwable;
 
 /**
  * Class Query

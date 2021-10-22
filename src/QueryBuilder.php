@@ -106,7 +106,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         return $condition === true ? ' WITH TOTALS ' : '';
     }
 
-    public function buildPreWhere(string|array $condition, array &$params): string
+    public function buildPreWhere(string|array|null $condition, array &$params): string
     {
         $where = $this->buildCondition($condition, $params);
         return $where === '' ? '' : 'PREWHERE ' . $where;
