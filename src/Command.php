@@ -181,10 +181,17 @@ class Command extends \Rabbit\DB\Command
             ]);
             $key = extension_loaded('igbinary') ? igbinary_serialize($cacheKey) : serialize($cacheKey);
             $key = md5($key);
-            $s = share($key, $func, $share);
-            if ($s->getStatus() === SWOOLE_CHANNEL_CLOSED) {
-                $rawSql .= '; [Query result read from share]';
-                $this->logQuery($rawSql, 'clickhouse');
+            $s = process_share($key, $func, $share);
+            $status = $s->getStatus();
+            if ($status === SWOOLE_CHANNEL_CLOSED) {
+                $rawSql .= '; [Query result read from channel share]';
+                $this->logQuery($rawSql);
+            } elseif ($status === $s::STATUS_PROCESS) {
+                $rawSql .= '; [Query result read from process share]';
+                $this->logQuery($rawSql);
+            } elseif ($status === $s::STATUS_CHANNEL) {
+                $rawSql .= '; [Query result read from process channel share]';
+                $this->logQuery($rawSql);
             }
             return $s->result;
         }
