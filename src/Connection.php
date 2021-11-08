@@ -37,6 +37,7 @@ class Connection extends \Rabbit\DB\Connection
         parent::__construct($dsn);
         $this->createPdoInstance();
         $this->driver = 'clickhouse';
+        $this->canTransaction = false;
     }
 
     public function createPdoInstance(): object

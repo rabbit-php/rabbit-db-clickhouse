@@ -8,6 +8,7 @@ use Rabbit\Base\App;
 use Rabbit\ActiveRecord\ActiveQuery;
 use Rabbit\Pool\ConnectionInterface;
 use Rabbit\ActiveRecord\ActiveRecord as ActiveRecordActiveRecord;
+use Rabbit\DB\Query;
 
 /**
  * Class ActiveRecord
@@ -46,6 +47,11 @@ class ActiveRecord extends ActiveRecordActiveRecord
     public function primaryKey(): array
     {
         return ['id'];
+    }
+
+    public function insertByQuery(Query $query): bool
+    {
+        return (bool)$this->db->createCommand()->insert($this->tableName(), $query);
     }
 
     public function insert(bool $runValidation = true, array $attributes = null): bool

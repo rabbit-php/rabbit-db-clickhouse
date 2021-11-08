@@ -5,95 +5,16 @@ declare(strict_types=1);
 namespace Rabbit\DB\ClickHouse;
 
 use Rabbit\ActiveRecord\BaseActiveRecord;
-use Rabbit\Base\Core\Context;
-use Rabbit\Base\Exception\InvalidConfigException;
-use Rabbit\Base\Exception\NotSupportedException;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\DBHelper;
 use Rabbit\DB\Exception;
-use Rabbit\DB\Expression;
 use Rabbit\Pool\ConnectionInterface;
-use ReflectionException;
-use Throwable;
 
 class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 {
-    public static function insertSeveral(BaseActiveRecord $model, array &$array_columns): int
+    public static function saveSeveral(BaseActiveRecord $model, array &$array_columns, bool $withUpdate = false): int
     {
-        $sql = '';
-        $params = array();
-        $i = 0;
-        if (ArrayHelper::isAssociative($array_columns)) {
-            $array_columns = [$array_columns];
-        }
-        $keys = $model->primaryKey();
-        $conn = $model->getDb();
-        if ($keys && !is_array($keys)) {
-            $keys = [$keys];
-        }
-        foreach ($array_columns as $item) {
-            $table = clone $model;
-            //关联模型
-            foreach ($table->getRelations() as $child => $val) {
-                $key = explode("\\", $child);
-                $key = strtolower(end($key));
-                if (isset($item[$key])) {
-                    $child_model = new $child();
-                    if (!isset($item[$key][0])) {
-                        $item[$key] = [$item[$key]];
-                    }
-                    foreach ($val as $c_attr => $p_attr) {
-                        foreach ($item[$key] as $index => $params) {
-                            $item[$key][$index][$c_attr] = $table->{$p_attr};
-                        }
-                    }
-                    if (self::updateSeveral($child_model, $item[$key]) === false) {
-                        return 0;
-                    }
-                }
-            }
-            $names = array();
-            $placeholders = array();
-            $table->load($item, '');
-            $table->isNewRecord = false;
-            if (!$table->validate()) {
-                throw new Exception(implode(PHP_EOL, $table->getFirstErrors()));
-            }
-            if ($keys) {
-                foreach ($keys as $key) {
-                    if (isset($item[$key])) {
-                        $table->$key = $item[$key];
-                    }
-                }
-            }
-            $tableArray = $table->toArray();
-            ksort($tableArray);
-            foreach ($tableArray as $name => $value) {
-                if (!$i) {
-                    $names[] = $conn->quoteColumnName($name);
-                    $updates[] = $conn->quoteColumnName($name) . "=values(" . $conn->quoteColumnName($name) . ")";
-                }
-                if ($value instanceof Expression) {
-                    $placeholders[] = $value->expression;
-                    foreach ($value->params as $n => $v) {
-                        $params[$n] = $v;
-                    }
-                } else {
-                    $placeholders[] = ':' . $name . $i;
-                    $params[':' . $name . $i] = $value;
-                }
-            }
-            if (!$i) {
-                $sql = 'INSERT INTO ' . $conn->quoteTableName($table::tableName())
-                    . ' (' . implode(', ', $names) . ') VALUES ('
-                    . implode(', ', $placeholders) . ')';
-            } else {
-                $sql .= ',(' . implode(', ', $placeholders) . ')';
-            }
-            $i++;
-        }
-        $conn->createCommand($sql, $params)->execute();
-        return count($array_columns);
+        return parent::saveSeveral($model, $array_columns, false);
     }
 
     public static function updateSeveral(BaseActiveRecord $model, array &$array_columns, array $when = null): int
@@ -116,27 +37,37 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         $whereIn = [];
         $whereVal = [];
         $i = 0;
-        foreach ($array_columns as $item) {
-            $table = clone $model;
-            //关联模型
-            foreach ($table->getRelations() as $child => $val) {
-                $key = explode("\\", $child);
-                $key = strtolower(end($key));
-                if (isset($item[$key])) {
-                    $child_model = new $child();
-                    if (!isset($item[$key][0])) {
+
+        //关联模型
+        foreach ($model->getRelations() as $child => [$key, $val, $delete]) {
+            $child_model = new $child();
+            $childs = [];
+            foreach ($array_columns as $item) {
+                if ($item[$key] ?? false) {
+                    if (!ArrayHelper::isIndexed($item[$key])) {
                         $item[$key] = [$item[$key]];
                     }
                     foreach ($val as $c_attr => $p_attr) {
-                        foreach ($item[$key] as $index => $param) {
-                            $item[$key][$index][$c_attr] = $table->{$p_attr};
+                        foreach ($item[$key] as &$param) {
+                            $param[$c_attr] = $item[$p_attr];
                         }
                     }
-                    if (self::updateSeveral($child_model, $item[$key]) === false) {
-                        return 0;
+                    $chd = ArrayHelper::remove($item, $key);
+                    $childs = [...$childs, ...$chd];
+                    if ($delete) {
+                        if (is_array($delete)) {
+                            self::delete($child_model, $delete);
+                        } elseif (is_callable($delete)) {
+                            call_user_func($delete, $child_model, $chd);
+                        }
                     }
                 }
             }
+            $childs && self::updateSeveral($child_model, $childs);
+        }
+
+        foreach ($array_columns as $item) {
+            $table = clone $model;
             $table->load($item, '');
             if (!$table->validate($columns)) {
                 throw new Exception(implode(PHP_EOL, $table->getFirstErrors()));
