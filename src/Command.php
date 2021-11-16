@@ -413,7 +413,7 @@ class Command extends \Rabbit\DB\Command
         return $this->statistics;
     }
 
-    public function insert(string $table, array|Query $columns): self
+    public function insert(string $table, array|Query $columns, bool $withUpdate = false): self
     {
         $params = [];
         $sql = $this->db->getQueryBuilder()->insert($table, $columns, $params);
