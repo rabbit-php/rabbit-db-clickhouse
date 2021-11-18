@@ -49,9 +49,9 @@ class ActiveRecord extends ActiveRecordActiveRecord
         return ['id'];
     }
 
-    public function insertByQuery(Query $query): bool
+    public function insertByQuery(Query $query, bool $withUpdate = false): bool
     {
-        return (bool)$this->db->createCommand()->insert($this->tableName(), $query);
+        return (bool)$this->db->createCommand()->insert($this->tableName(), $query)->execute();
     }
 
     public function insert(bool $runValidation = true, array $attributes = null): bool
