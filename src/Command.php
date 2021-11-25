@@ -140,6 +140,8 @@ class Command extends \Rabbit\DB\Command
                         $this->db->dsn,
                         $rawSql,
                     ]);
+                    $cacheKey = extension_loaded('igbinary') ? igbinary_serialize($cacheKey) : serialize($cacheKey);
+                    $cacheKey = md5($cacheKey);
                     if (!empty($ret = $cache->get($cacheKey))) {
                         $result = unserialize($ret);
                         if (is_array($result) && isset($result[0])) {
@@ -179,8 +181,8 @@ class Command extends \Rabbit\DB\Command
                 $this->db->dsn,
                 $rawSql,
             ]);
-            $key = extension_loaded('igbinary') ? igbinary_serialize($cacheKey) : serialize($cacheKey);
-            $key = md5($key);
+            $cacheKey = extension_loaded('igbinary') ? igbinary_serialize($cacheKey) : serialize($cacheKey);
+            $cacheKey = md5($cacheKey);
             $s = process_share($key, $func, $share);
             $status = $s->getStatus();
             if ($status === SWOOLE_CHANNEL_CLOSED) {
