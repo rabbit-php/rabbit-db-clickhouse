@@ -38,34 +38,6 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         $whereVal = [];
         $i = 0;
 
-        //关联模型
-        foreach ($model->getRelations() as $child => [$key, $val, $delete]) {
-            $child_model = new $child();
-            $childs = [];
-            foreach ($array_columns as $item) {
-                if ($item[$key] ?? false) {
-                    if (!ArrayHelper::isIndexed($item[$key])) {
-                        $item[$key] = [$item[$key]];
-                    }
-                    foreach ($val as $c_attr => $p_attr) {
-                        foreach ($item[$key] as &$param) {
-                            $param[$c_attr] = $item[$p_attr];
-                        }
-                    }
-                    $chd = ArrayHelper::remove($item, $key);
-                    $childs = [...$childs, ...$chd];
-                    if ($delete) {
-                        if (is_array($delete)) {
-                            self::delete($child_model, $delete);
-                        } elseif (is_callable($delete)) {
-                            call_user_func($delete, $child_model, $chd);
-                        }
-                    }
-                }
-            }
-            $childs && self::updateSeveral($child_model, $childs);
-        }
-
         foreach ($array_columns as $item) {
             $table = clone $model;
             $table->load($item, '');
