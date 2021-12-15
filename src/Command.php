@@ -184,7 +184,7 @@ class Command extends \Rabbit\DB\Command
             ]);
             $cacheKey = extension_loaded('igbinary') ? igbinary_serialize($cacheKey) : serialize($cacheKey);
             $cacheKey = md5($cacheKey);
-            $type = $this->db->shareType;
+            $type = $this->shareType;
             $s = $type($cacheKey, $func, $share);
             $status = $s->getStatus();
             if ($status === SWOOLE_CHANNEL_CLOSED) {
