@@ -12,9 +12,9 @@ use Rabbit\Pool\ConnectionInterface;
 
 class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 {
-    public static function saveSeveral(BaseActiveRecord $model, array &$array_columns, bool $withUpdate = false): int
+    public static function saveSeveral(BaseActiveRecord $model, array &$array_columns, bool $withUpdate = false, array $exclude = []): int
     {
-        return parent::saveSeveral($model, $array_columns, false);
+        return parent::saveSeveral($model, $array_columns, false, $exclude);
     }
 
     public static function updateSeveral(BaseActiveRecord $model, array &$array_columns, array $when = null): int
