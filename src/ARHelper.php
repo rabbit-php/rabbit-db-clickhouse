@@ -19,7 +19,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 
     public static function updateSeveral(BaseActiveRecord $model, array &$array_columns, array $when = null): int
     {
-        if (ArrayHelper::isAssociative($array_columns)) {
+        if (!array_is_list($array_columns)) {
             $array_columns = [$array_columns];
         }
         $keys = $model->primaryKey();
