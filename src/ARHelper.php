@@ -68,7 +68,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
             $sql .= " `$key` in (" . implode(',', $whereIn[$key]) . ') and ';
         }
         $sql = rtrim($sql, "and ");
-        $params = array_merge($bindings, $whereVal);
+        $params = [...$bindings, ...$whereVal];
         $conn->createCommand($sql, $params)->execute();
         return count($array_columns);
     }

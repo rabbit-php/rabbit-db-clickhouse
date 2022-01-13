@@ -47,7 +47,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
     {
         $query = $query->prepare($this);
 
-        $params = empty($params) ? $query->params : array_merge($params, $query->params);
+        $params = [...$params, ...$query->params];
 
         $this->prepareFromByModel($query);
 
@@ -81,14 +81,14 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         if (!empty($query->orderBy)) {
             foreach ($query->orderBy as $expression) {
                 if ($expression instanceof Expression) {
-                    $params = array_merge($params, $expression->params);
+                    $params = [...$params, ...$expression->params];
                 }
             }
         }
         if (!empty($query->groupBy)) {
             foreach ($query->groupBy as $expression) {
                 if ($expression instanceof Expression) {
-                    $params = array_merge($params, $expression->params);
+                    $params = [...$params, ...$expression->params];
                 }
             }
         }

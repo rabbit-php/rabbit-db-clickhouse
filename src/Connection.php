@@ -135,7 +135,7 @@ class Connection extends \Rabbit\DB\Connection
 
     public function getQueryString(array $query = []): string
     {
-        return '?' . http_build_query(array_merge($this->query, $query));
+        return '?' . http_build_query([...$this->query, ...$query]);
     }
 
     public function buildQuery(): QueryInterface
