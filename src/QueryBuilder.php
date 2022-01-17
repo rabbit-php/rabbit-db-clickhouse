@@ -59,7 +59,6 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
             $this->buildPreWhere($query->preWhere, $params),
             $this->buildWhere($query->where, $params),
             $this->buildGroupBy($query->groupBy, $params),
-            // $this->buildWithTotals($query->hasWithTotals()),
             $this->buildHaving($query->having, $params),
         ];
 
@@ -99,11 +98,6 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         }
 
         return [$sql, $params];
-    }
-
-    public function buildWithTotals(bool $condition): string
-    {
-        return $condition === true ? ' WITH TOTALS ' : '';
     }
 
     public function buildPreWhere(string|array|null $condition, array &$params): string
