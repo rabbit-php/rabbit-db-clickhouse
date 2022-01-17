@@ -59,7 +59,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
             $this->buildPreWhere($query->preWhere, $params),
             $this->buildWhere($query->where, $params),
             $this->buildGroupBy($query->groupBy, $params),
-            $this->buildWithTotals($query->hasWithTotals()),
+            // $this->buildWithTotals($query->hasWithTotals()),
             $this->buildHaving($query->having, $params),
         ];
 
