@@ -119,7 +119,7 @@ class Command extends \Rabbit\DB\Command
     protected function queryInternal(?string $method, int $fetchMode = null): null|string|bool|int|float|array|DataReader
     {
         $rawSql = $this->getRawSql();
-        if ($method == self::FETCH) {
+        if ($method === self::FETCH) {
             if (preg_match('#^SELECT#is', $rawSql) && !preg_match('#LIMIT#is', $rawSql)) {
                 $rawSql .= ' LIMIT 1';
             }
@@ -271,11 +271,11 @@ class Command extends \Rabbit\DB\Command
         return $result;
     }
 
-    protected function getStatementData(array $result): array
+    protected function getStatementData(): array
     {
         return [
             'meta' => $this->getMeta(),
-            'data' => $result,
+            'data' => $this->getData(),
             'rows' => $this->getRows(),
             'countAll' => $this->getCountAll(),
             'totals' => $this->getTotals(),
@@ -304,11 +304,11 @@ class Command extends \Rabbit\DB\Command
                 break;
         }
 
-        if ($fetchMode == self::FETCH_MODE_ALL) {
-            return $this->getStatementData($result);
+        if ($fetchMode === self::FETCH_MODE_ALL) {
+            return $this->getStatementData();
         }
 
-        if ($fetchMode == self::FETCH_MODE_TOTAL) {
+        if ($fetchMode === self::FETCH_MODE_TOTAL) {
             return $this->getTotals();
         }
 

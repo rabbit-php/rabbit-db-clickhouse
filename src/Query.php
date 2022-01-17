@@ -23,7 +23,6 @@ use Rabbit\Pool\ConnectionInterface;
 class Query extends \Rabbit\DB\Query
 {
     private ?Command $command = null;
-    private bool $withTotals = false;
     public ?float $sample = null;
     public null|string|array|Expression $preWhere = null;
     public ?array $limitBy = null;
@@ -83,15 +82,9 @@ class Query extends \Rabbit\DB\Query
         return $this;
     }
 
-    public function withTotals(): self
+    public function totals(): ?int
     {
-        $this->withTotals = true;
-        return $this;
-    }
-
-    public function hasWithTotals(): bool
-    {
-        return $this->withTotals;
+        return $this->getTotals();
     }
 
     private function ensureQueryExecuted(): void

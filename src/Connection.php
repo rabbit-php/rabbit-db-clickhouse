@@ -11,7 +11,6 @@ use Rabbit\DB\Exception;
 use Rabbit\DB\QueryBuilder;
 use Rabbit\DB\QueryInterface;
 use Rabbit\HttpClient\Client;
-use Throwable;
 
 /**
  * Class Connection
