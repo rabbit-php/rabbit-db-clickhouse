@@ -28,11 +28,9 @@ class Connection extends \Rabbit\DB\Connection
 
     protected Client $client;
 
-    public string $database = 'default';
-
     protected array $query = [];
 
-    public function __construct(string $dsn)
+    public function __construct(protected string $dsn)
     {
         parent::__construct($dsn);
         $this->createPdoInstance();

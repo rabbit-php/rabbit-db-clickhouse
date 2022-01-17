@@ -21,7 +21,7 @@ class ActiveRecord extends ActiveRecordActiveRecord
         if (is_string($db)) {
             $this->db = getDI('db')->get($db);
         } elseif ($db === null) {
-            $this->getDb();
+            $this->db = getDI('db')->get('clickhouse');
         } else {
             $this->db = $db;
         }
@@ -29,7 +29,6 @@ class ActiveRecord extends ActiveRecordActiveRecord
 
     public function getDb(): ConnectionInterface
     {
-        $this->db = $this->db ?? getDI('db')->get('clickhouse');
         return $this->db;
     }
 

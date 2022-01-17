@@ -30,7 +30,7 @@ class Query extends \Rabbit\DB\Query
 
     public function __construct(?ConnectionInterface $db = null, string $driver = 'clickhouse', array $config = [])
     {
-        parent::__construct($db ?? getDI($driver)->get(), $config);
+        parent::__construct($db ?? getDI('db')->get($driver), $config);
     }
 
     public function createCommand(): Command

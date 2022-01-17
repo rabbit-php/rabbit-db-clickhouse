@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -15,21 +16,11 @@ use Rabbit\DB\ConnectionInterface;
  */
 class BatchInsertCsv implements BatchInterface
 {
-    /** @var string */
-    private string $table;
-    /** @var ConnectionInterface */
-    private ?ConnectionInterface $db = null;
-    /** @var array */
     private array $columns = [];
-    /** @var string */
     private string $cacheDir = '/dev/shm/ck/csv/';
-    /** @var bool|resource */
     private $fp;
-    /** @var string */
     private string $ext = 'csv';
-    /** @var string */
     private string $fileName;
-    /** @var int */
     private int $hasRows = 0;
 
     /**
@@ -41,14 +32,11 @@ class BatchInsertCsv implements BatchInterface
      * @throws Exception
      */
     public function __construct(
-        string $table,
+        private string $table,
         string $fileName,
-        ConnectionInterface $db,
+        private ConnectionInterface $db,
         string $cacheDir = '/dev/shm/ck/csv/'
-    )
-    {
-        $this->table = $table;
-        $this->db = $db;
+    ) {
         $this->cacheDir = $cacheDir;
         $this->fileName = $this->cacheDir . pathinfo($fileName, PATHINFO_FILENAME) . '.' . $this->ext;
         $this->open();

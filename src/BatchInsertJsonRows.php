@@ -12,15 +12,8 @@ use Rabbit\DB\ConnectionInterface;
  */
 class BatchInsertJsonRows extends BatchInsert
 {
-    /**
-     * BatchInsert constructor.
-     * @param string $table
-     * @param ConnectionInterface $db
-     */
-    public function __construct(string $table, ConnectionInterface $db)
+    public function __construct(protected string $table, protected readonly ConnectionInterface $db)
     {
-        $this->table = $table;
-        $this->db = $db;
     }
 
     /**
