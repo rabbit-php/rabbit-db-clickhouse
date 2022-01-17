@@ -84,7 +84,7 @@ class Query extends \Rabbit\DB\Query
 
     public function totals(): ?int
     {
-        return $this->getTotals();
+        return $this->getCountAll();
     }
 
     private function ensureQueryExecuted(): void
