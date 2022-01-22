@@ -54,9 +54,9 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         $clauses = [
             $this->buildSelect($query->select, $params, $query->distinct, $query->selectOption),
             $this->buildFrom($query->from, $params),
-            $this->buildSample($query->sample),
+            property_exists($query, 'sample') ? $this->buildSample($query->sample) : '',
             $this->buildJoin($query->join, $params),
-            $this->buildPreWhere($query->preWhere, $params),
+            property_exists($query, 'preWhere') ? $this->buildPreWhere($query->preWhere, $params) : '',
             $this->buildWhere($query->where, $params),
             $this->buildGroupBy($query->groupBy, $params),
             $this->buildHaving($query->having, $params),
@@ -68,7 +68,7 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
         if ($orderBy !== '') {
             $sql .= $this->separator . $orderBy;
         }
-        $limitBy = $this->buildLimitBy($query->limitBy);
+        $limitBy = property_exists($query, 'limitBy') ? $this->buildLimitBy($query->limitBy) : '';
         if ($limitBy !== '') {
             $sql .= $this->separator . $limitBy;
         }
