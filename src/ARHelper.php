@@ -78,7 +78,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         if (!ArrayHelper::isIndexed($body)) {
             $body = [$body];
         }
-        $result = self::insertSeveral($model, $body);
+        $result = parent::typeInsert($model, $body);
         return is_array($result) ? $result : [$result];
     }
 

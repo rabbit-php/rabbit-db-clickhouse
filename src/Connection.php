@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-use Psr\SimpleCache\InvalidArgumentException;
 use Rabbit\Base\App;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\Exception;
@@ -19,15 +18,12 @@ use Rabbit\HttpClient\Client;
 class Connection extends \Rabbit\DB\Connection
 {
     protected string $commandClass = Command::class;
-    protected string $schemaClass = Schema::class;
-
-    public array $schemaMap = [
-        'clickhouse' => Schema::class
-    ];
 
     protected Client $client;
 
     protected array $query = [];
+
+    public readonly string $database;
 
     public function __construct(protected string $dsn)
     {
@@ -112,7 +108,7 @@ class Connection extends \Rabbit\DB\Connection
         if ($this->schema !== null) {
             return $this->schema;
         }
-        return $this->schema = new $this->schemaClass($this);
+        return $this->schema = new Schema($this);
     }
 
     public function quoteTableName(string $name): string

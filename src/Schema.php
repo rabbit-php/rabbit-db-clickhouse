@@ -4,15 +4,7 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-
-use DI\DependencyException;
-use DI\NotFoundException;
-use Psr\SimpleCache\InvalidArgumentException;
-use Rabbit\Base\Exception\NotSupportedException;
 use Rabbit\Base\Helper\ArrayHelper;
-use Rabbit\DB\Exception;
-use ReflectionException;
-use Throwable;
 
 /**
  * Class Schema
@@ -20,8 +12,6 @@ use Throwable;
  */
 class Schema extends \Rabbit\DB\Schema
 {
-    public string $columnSchemaClass = ColumnSchema::class;
-
     protected string $builderClass = QueryBuilder::class;
 
     public static array $typeMap = [
