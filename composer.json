@@ -25,7 +25,7 @@
     "phpunit/phpunit": "*"
   },
   "suggest": {
-    "ext-igbinary": "Support igbinary serialize"
+    "ext-msgpack": "Support msgpack serialize"
   },
   "autoload": {
     "psr-4": {
