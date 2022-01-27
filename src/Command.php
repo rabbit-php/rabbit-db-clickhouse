@@ -128,7 +128,7 @@ class Command extends \Rabbit\DB\Command
             $rawSql .= ' FORMAT JSON';
         }
         $share = $this->share ?? $this->db->share;
-        $func = function () use ($method, &$rawSql, $fetchMode) {
+        $func = function () use ($method, &$rawSql, $fetchMode): mixed {
             if ($method !== '') {
                 $info = $this->db->getQueryCacheInfo($this->queryCacheDuration, $this->cache);
                 if (is_array($info)) {
@@ -255,7 +255,7 @@ class Command extends \Rabbit\DB\Command
                     throw new Exception("{$rawSql} download failed!");
                 }
                 if ($this->queryCacheDuration > 0) {
-                    Timer::addAfterTimer($this->queryCacheDuration * 1000, function () use ($fileName) {
+                    Timer::addAfterTimer($this->queryCacheDuration * 1000, function () use ($fileName): void {
                         @unlink($fileName);
                     }, 'download.' . $fileName);
                 }
@@ -290,18 +290,14 @@ class Command extends \Rabbit\DB\Command
         $result = ArrayHelper::getValue($result, 'data', []);
         switch ($method) {
             case self::FETCH_COLUMN:
-                return array_map(function ($a) {
+                return array_map(function (array $a) {
                     return array_values($a)[0];
                 }, $result);
                 break;
             case self::FETCH_SCALAR:
-                if (array_key_exists(0, $result)) {
-                    return current($result[0]);
-                }
-                break;
+                return current($result[0] ?? []);
             case self::FETCH:
                 return is_array($result) ? array_shift($result) : $result;
-                break;
         }
 
         if ($fetchMode === self::FETCH_MODE_ALL) {
