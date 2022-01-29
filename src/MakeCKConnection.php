@@ -31,10 +31,10 @@ class MakeCKConnection
         $urlArr = parse_url($dsn);
         $driver = $urlArr['scheme'];
         /** @var Manager $manager */
-        $manager = getDI('db');
+        $manager = service('db');
         if (!$manager->has($name)) {
             $conn = [
-                'class' => $class,
+                '{}' => $class,
                 'name' => $name,
                 'dsn' => $dsn
             ];
@@ -42,7 +42,7 @@ class MakeCKConnection
                 $manager->add([$name => create($conn, [], false)]);
             } elseif ($driver === 'click') {
                 $poolConfig = [
-                    'class' => PoolProperties::class,
+                    '{}' => PoolProperties::class,
                 ];
                 [
                     $poolConfig['minActive'],
@@ -61,13 +61,13 @@ class MakeCKConnection
                     3
                 ]);
                 $conn['pool'] = create([
-                    'class' => PdoPool::class,
+                    '{}' => PdoPool::class,
                     'poolConfig' => create($poolConfig, [], false)
                 ], [], false);
                 if (!empty($retryHandler)) {
                     $conn['retryHandler'] = create($retryHandler);
                 } else {
-                    $conn['retryHandler'] = getDI(RetryHandler::class);
+                    $conn['retryHandler'] = service(RetryHandler::class);
                 }
                 $manager->add([$name => $conn]);
             } else {

@@ -19,9 +19,9 @@ class ActiveRecord extends ActiveRecordActiveRecord
     public function __construct(string|ConnectionInterface $db = null)
     {
         if (is_string($db)) {
-            $this->db = getDI('db')->get($db);
+            $this->db = service('db')->get($db);
         } elseif ($db === null) {
-            $this->db = getDI('db')->get('clickhouse');
+            $this->db = service('db')->get('clickhouse');
         } else {
             $this->db = $db;
         }

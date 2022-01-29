@@ -127,7 +127,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
             public function __construct(string $tableName, string|ConnectionInterface $dbName)
             {
                 $this->tableName = $tableName;
-                $this->db = is_string($dbName) ? getDI('db')->get($dbName) : $dbName;
+                $this->db = is_string($dbName) ? service('db')->get($dbName) : $dbName;
             }
         };
     }

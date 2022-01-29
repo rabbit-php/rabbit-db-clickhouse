@@ -29,7 +29,7 @@ class Query extends \Rabbit\DB\Query
 
     public function __construct(?ConnectionInterface $db = null, string $driver = 'clickhouse', array $config = [])
     {
-        parent::__construct($db ?? getDI('db')->get($driver), $config);
+        parent::__construct($db ?? service('db')->get($driver), $config);
     }
 
     public function createCommand(): Command
@@ -118,7 +118,7 @@ class Query extends \Rabbit\DB\Query
     public function batch(int $batchSize = 100): BatchQueryResult
     {
         return create([
-            'class' => BatchQueryResult::class,
+            '{}' => BatchQueryResult::class,
             'query' => $this,
             'batchSize' => $batchSize,
             'db' => $this->db,
@@ -129,7 +129,7 @@ class Query extends \Rabbit\DB\Query
     public function each(int $batchSize = 100): BatchQueryResult
     {
         return create([
-            'class' => BatchQueryResult::class,
+            '{}' => BatchQueryResult::class,
             'query' => $this,
             'batchSize' => $batchSize,
             'db' => $this->db,
