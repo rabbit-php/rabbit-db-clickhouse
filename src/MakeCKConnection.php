@@ -67,7 +67,7 @@ class MakeCKConnection
                 if (!empty($retryHandler)) {
                     $conn['retryHandler'] = create($retryHandler);
                 } else {
-                    $conn['retryHandler'] = service(RetryHandler::class);
+                    $conn['retryHandler'] = create(RetryHandler::class);
                 }
                 $manager->add([$name => $conn]);
             } else {
