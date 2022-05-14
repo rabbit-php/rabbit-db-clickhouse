@@ -8,10 +8,11 @@ use Rabbit\ActiveRecord\BaseActiveRecord;
 use Rabbit\Base\Helper\ArrayHelper;
 use Rabbit\DB\DBHelper;
 use Rabbit\DB\Exception;
-use Rabbit\Pool\ConnectionInterface;
 
 class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 {
+    const DEFAULT_DB = 'clickhouse';
+
     public static function saveSeveral(BaseActiveRecord $model, array &$array_columns, bool $withUpdate = false, array $exclude = []): int
     {
         return parent::saveSeveral($model, $array_columns, false, $exclude);
@@ -118,17 +119,5 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
             throw new Exception('Failed to delete the object for unknown reason.');
         }
         return $result;
-    }
-
-    public static function getModel(string $table, string|ConnectionInterface $db): BaseActiveRecord
-    {
-        return new class($table, $db) extends ActiveRecord
-        {
-            public function __construct(string $tableName, string|ConnectionInterface $dbName)
-            {
-                $this->tableName = $tableName;
-                $this->db = is_string($dbName) ? service('db')->get($dbName) : $dbName;
-            }
-        };
     }
 }
