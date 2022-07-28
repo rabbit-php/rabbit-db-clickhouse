@@ -6,7 +6,6 @@ namespace Rabbit\DB\ClickHouse;
 
 use Psr\SimpleCache\InvalidArgumentException;
 use Rabbit\Base\Helper\StringHelper;
-use Rabbit\DB\ConnectionInterface;
 use Throwable;
 
 class BatchInsert extends \Rabbit\DB\BatchInsert
@@ -14,11 +13,11 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
     protected array $delItems = [];
     protected ?string $delKey = null;
 
-    public function __construct(protected string $table, protected readonly ConnectionInterface $db, string $delKey = null)
+    public function setDelKey(string $key): void
     {
-        $this->delKey = $deleKey;
-        parent::__construct($table, $db);
+        $this->delKey = $key;
     }
+
     /**
      * @param array $columns
      * @return bool
