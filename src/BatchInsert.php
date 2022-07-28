@@ -38,7 +38,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
                 $tmp[] = $name;
             }
         }
-        $this->sql .= ' (' . implode(', ', $tmp) . ') VALUES ';
+        $this->bindColumns($tmp);
         $this->columns = $tmp;
         return true;
     }
@@ -83,10 +83,9 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
                             }
                             break;
                         default:
-                            $value = $this->schema->quoteValue($value);
+                            $value = $this->quoteValue($value);
                     }
                 } elseif (is_float($value)) {
-                    // ensure type cast always has . as decimal separator in all locales
                     $value = StringHelper::floatToString($value);
                 } elseif ($value === false) {
                     $value = 0;
@@ -102,7 +101,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
                             break;
                         case strpos($dbType, "String") !== false:
                         default:
-                            $value = $this->schema->quoteValue("");
+                            $value = $this->quoteValue("");
                     }
                 } elseif (is_array($value)) {
                     switch (true) {
@@ -127,7 +126,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
             }
             $rows = $tmps;
         }
-        $this->sql .= '(' . implode(', ', $rows) . '),';
+        $this->bindRows($rows);
         if ($this->delKey && ($delVal = $rows[$this->delKey])) {
             $this->delItems[] = $delVal;
         }
@@ -140,5 +139,20 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
             $this->db->createCommand("ALTER TABLE {$this->table} DELETE WHERE {$this->delKey} in (" . implode(', ', $this->delItems) . ')')->execute();
         }
         return parent::execute();
+    }
+
+    protected function bindColumns(array $columns): void
+    {
+        $this->sql .= ' (' . implode(', ', $columns) . ') VALUES ';
+    }
+
+    protected function bindRows(array $rows): void
+    {
+        $this->sql .= '(' . implode(', ', $rows) . '),';
+    }
+
+    protected function quoteValue(string $str): string
+    {
+        return $this->schema->quoteValue($str);
     }
 }

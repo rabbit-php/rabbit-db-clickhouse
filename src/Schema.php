@@ -89,9 +89,6 @@ class Schema extends \Rabbit\DB\Schema
 
     public function quoteValue(string $str): string
     {
-        if (!is_string($str)) {
-            return $str;
-        }
         return "'" . addcslashes(str_replace("'", "''", $str), "\000\n\r\\\032\047") . "'";
     }
 
