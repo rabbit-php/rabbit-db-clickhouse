@@ -32,6 +32,7 @@ class Schema extends \Rabbit\DB\Schema
         'Enum' => self::TYPE_STRING,
         'Enum8' => self::TYPE_STRING,
         'Enum16' => self::TYPE_STRING,
+        'JSON' => self::TYPE_JSON,
 
         'Nullable(UInt8)' => self::TYPE_SMALLINT,
         'Nullable(UInt16)' => self::TYPE_INTEGER,
@@ -121,10 +122,10 @@ class Schema extends \Rabbit\DB\Schema
             $name = $schemaData[1];
         }
 
-        $sql = 'SELECT * FROM system.columns WHERE `table`=:name and `database`=:database FORMAT JSON';
+        $sql = 'SELECT * FROM system.columns WHERE `table`=? and `database`=? FORMAT JSON';
         $result = $this->db->createCommand($sql, [
-            ':name' => $name,
-            ':database' => $database
+            $name,
+            $database
         ])->queryAll();
 
         if ($result && isset($result[0])) {

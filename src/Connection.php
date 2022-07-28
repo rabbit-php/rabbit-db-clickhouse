@@ -33,6 +33,11 @@ class Connection extends \Rabbit\DB\Connection
         $this->canTransaction = false;
     }
 
+    public function getPoolKey(): string
+    {
+        return 'clickhouse.http';
+    }
+
     public function createPdoInstance(): object
     {
         $parsed = $this->parseDsn;

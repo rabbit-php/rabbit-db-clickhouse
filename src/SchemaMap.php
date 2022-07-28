@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -27,7 +28,8 @@ class SchemaMap
             'DATE' => 'Date',
             'DATETIME' => 'DateTime',
             'TIMESTAMP' => 'DateTime',
-            'BINARY' => 'String'
+            'BINARY' => 'String',
+            'JSON' => 'JSON',
         ]
     ];
 }
