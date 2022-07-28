@@ -129,10 +129,6 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
         }
         $this->sql .= '(' . implode(', ', $rows) . '),';
         if ($this->delKey && ($delVal = $rows[$this->delKey])) {
-            $columnSchema = $this->columnSchemas[$this->delKey];
-            if ($columnSchema->dbType === "String") {
-                $delVal = "'{$delVal}'";
-            }
             $this->delItems[] = $delVal;
         }
         return true;
