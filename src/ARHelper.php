@@ -13,7 +13,7 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 {
     const DEFAULT_DB = 'clickhouse';
 
-    public static function saveSeveral(BaseActiveRecord $model, array &$array_columns, bool $withUpdate = false, array $exclude = []): int
+    public static function saveSeveral(BaseActiveRecord $model, array &$array_columns, bool $withUpdate = false, array $exclude = [], bool $trans = true): int
     {
         return parent::saveSeveral($model, $array_columns, false, $exclude);
     }

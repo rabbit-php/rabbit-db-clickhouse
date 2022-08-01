@@ -420,6 +420,20 @@ class Command extends \Rabbit\DB\Command
         return $this->setSql($sql)->bindValues($params);
     }
 
+    public function update(string $table, array $columns, string|array $condition = '', array $params = [], string $settings = ''): self
+    {
+        $sql = $this->db->getQueryBuilder()->update($table, $columns, $condition, $params, $settings);
+
+        return $this->setSql($sql)->bindValues($params);
+    }
+
+    public function delete(string $table, string|array $condition = '', array $params = [], string $settings = ''): self
+    {
+        $sql = $this->db->getQueryBuilder()->delete($table, $condition, $params, $settings);
+
+        return $this->setSql($sql)->bindValues($params);
+    }
+
     public function insertJsonRows(string $table, string &$rows): bool|string|array
     {
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
