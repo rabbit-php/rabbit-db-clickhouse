@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
 
-use Psr\SimpleCache\InvalidArgumentException;
 use Rabbit\Base\Helper\StringHelper;
-use Throwable;
 
 class BatchInsert extends \Rabbit\DB\BatchInsert
 {
@@ -18,14 +16,9 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
         $this->delKey = $key;
     }
 
-    /**
-     * @param array $columns
-     * @return bool
-     * @throws Throwable|InvalidArgumentException
-     */
-    public function addColumns(array $columns): bool
+    public function addColumns(array $columns = []): bool
     {
-        if (empty($columns) || $this->columns) {
+        if ($this->columns) {
             return false;
         }
         if (($tableSchema = $this->schema->getTableSchema($this->table)) !== null) {
@@ -33,6 +26,11 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
         }
 
         $tmp = [];
+
+        if (empty($columns)) {
+            $columns = array_keys($this->columnSchemas);
+        }
+
         foreach ($columns as $name) {
             if ($this->columnSchemas[$name] ?? false) {
                 $tmp[] = $name;
