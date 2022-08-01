@@ -8,14 +8,6 @@ use Rabbit\Base\Helper\StringHelper;
 
 class BatchInsert extends \Rabbit\DB\BatchInsert
 {
-    protected array $delItems = [];
-    protected ?string $delKey = null;
-
-    public function setDelKey(string $key): void
-    {
-        $this->delKey = $key;
-    }
-
     public function addColumns(array $columns = []): bool
     {
         if ($this->columns) {
