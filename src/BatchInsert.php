@@ -117,18 +117,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
             $rows = $tmps;
         }
         $this->bindRows($rows);
-        if ($this->delKey && ($delVal = $rows[$this->delKey])) {
-            $this->delItems[] = $delVal;
-        }
         return true;
-    }
-
-    public function execute(): int
-    {
-        if (count($this->delItems) > 0) {
-            $this->db->createCommand("ALTER TABLE {$this->table} DELETE WHERE {$this->delKey} in (" . implode(', ', $this->delItems) . ')')->execute();
-        }
-        return parent::execute();
     }
 
     protected function bindColumns(array $columns): void
