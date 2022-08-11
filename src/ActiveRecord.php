@@ -27,22 +27,6 @@ class ActiveRecord extends ActiveRecordActiveRecord
         }
     }
 
-    public function updateAll(array $attributes, string|array $condition = '', array $params = [], string $settings = ''): int
-    {
-        $command = $this->db->createCommand();
-        $command->update($this->tableName(), $attributes, $condition, $params, $settings);
-
-        return (int)$command->execute();
-    }
-
-    public function deleteAll(string|array $condition = null, array $params = [], string $settings = ''): int
-    {
-        $command = $this->db->createCommand();
-        $command->delete($this->tableName(), $condition, $params, $settings);
-
-        return (int)$command->execute();
-    }
-
     public function getDb(): ConnectionInterface
     {
         return $this->db;

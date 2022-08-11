@@ -279,19 +279,19 @@ class QueryBuilder extends \Rabbit\DB\QueryBuilder
             . ' (' . implode(', ', $columns) . ') VALUES ' . implode(', ', $values);
     }
 
-    public function update(string $table, array $columns, array|string $condition, array &$params = [], string $settings = ''): string
+    public function update(string $table, array $columns, array|string $condition, array &$params = []): string
     {
         [$lines, $params] = $this->prepareUpdateSets($table, $columns, $params);
         $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' UPDATE ' . implode(', ', $lines);
         $where = $this->buildWhere($condition, $params);
-        return ($where === '' ? $sql : $sql . ' ' . $where) . " {$settings}";
+        return ($where === '' ? $sql : $sql . ' ' . $where);
     }
 
-    public function delete(string $table, array|string $condition, array &$params, string $settings = ''): string
+    public function delete(string $table, array|string $condition, array &$params): string
     {
         $sql = 'ALTER TABLE ' . $this->db->quoteTableName($table) . ' DELETE ';
         $where = $this->buildWhere($condition, $params);
 
-        return ($where === '' ? $sql : $sql . ' ' . $where) . " {$settings}";
+        return ($where === '' ? $sql : $sql . ' ' . $where);
     }
 }
