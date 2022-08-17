@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Rabbit\DB\ClickHouse;
@@ -12,7 +13,7 @@ use Rabbit\DB\ConnectionInterface;
  */
 class BatchInsertJsonRows extends BatchInsert
 {
-    public function __construct(protected string $table, protected readonly ConnectionInterface $db)
+    public function __construct(public readonly string $table, protected readonly ConnectionInterface $db)
     {
     }
 
@@ -21,7 +22,7 @@ class BatchInsertJsonRows extends BatchInsert
      * @return bool
      * @throws NotSupportedException
      */
-    public function addColumns(array $columns): bool
+    public function addColumns(array $columns = []): bool
     {
         throw new NotSupportedException("BatchInsertJsonRows no need to set columns");
     }

@@ -51,10 +51,10 @@ class Connection extends \Rabbit\DB\Connection
 
         isset($parsed['query']) ? parse_str($parsed['query'], $query) : $query = [];
         $query['database'] = $this->database = (string)ArrayHelper::remove($query, 'dbname', 'default');
-        $this->query = $query;
         $size = ArrayHelper::remove($query, 'size', false);
         $retry = ArrayHelper::remove($query, 'retry', 0);
         $timeout = ArrayHelper::remove($query, 'timeout', 5);
+        $this->query = $query;
 
         $parsed['scheme'] = str_replace('clickhouse', 'http', $parsed['scheme']);
         $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : '';
@@ -88,11 +88,6 @@ class Connection extends \Rabbit\DB\Connection
     public function quoteValue(string $str): string
     {
         return $this->getSchema()->quoteValue($str);
-    }
-
-    public function quoteSql(string $sql): string
-    {
-        return $sql;
     }
 
     public function __sleep()
