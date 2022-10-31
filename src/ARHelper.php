@@ -6,8 +6,10 @@ namespace Rabbit\DB\ClickHouse;
 
 use Rabbit\ActiveRecord\BaseActiveRecord;
 use Rabbit\Base\Helper\ArrayHelper;
+use Rabbit\Base\Helper\JsonHelper;
 use Rabbit\DB\DBHelper;
 use Rabbit\DB\Exception;
+use Rabbit\DB\JsonExpression;
 
 class ARHelper extends \Rabbit\ActiveRecord\ARHelper
 {
@@ -39,13 +41,22 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
         $whereVal = [];
         $i = 0;
 
+        $schema = $conn->getSchema();
+        $tableSchema = $schema->getTableSchema($model->tableName());
+        $columnSchemas = $tableSchema !== null ? $tableSchema->columns : [];
+
         foreach ($array_columns as $item) {
             $table = clone $model;
             $table->load($item, '');
             if (!$table->validate($columns)) {
                 throw new Exception(implode(PHP_EOL, $table->getFirstErrors()));
             }
+            ksort($item);
             foreach ($item as $name => $value) {
+                if (!($columnSchemas[$name] ?? false)) {
+                    continue;
+                }
+                $value =  $columnSchemas[$name]->dbTypecast($value);
                 if (in_array($name, $keys)) {
                     $whereIn[$name][] = '?';
                     $whereVal[] = $value;
@@ -53,17 +64,22 @@ class ARHelper extends \Rabbit\ActiveRecord\ARHelper
                     $i === 0 && $sets[$name] = " `$name`=multiIf(";
                     foreach ($keys as $key) {
                         $bindings[] = $item[$key];
-                        $sets[$name] .= "`$key`==? and ";
+                        $sets[$name] .= "`$key`=? and ";
                     }
                     $sets[$name] = rtrim($sets[$name], ' and ') . ',?,';
-                    $bindings[] = $value;
+                    if ($value instanceof JsonExpression) {
+                        $bindings[] = is_string($value->getValue()) ? $value->getValue() : JsonHelper::encode($value->getValue());
+                    } else {
+                        $bindings[] = $value;
+                    }
                 }
             }
             $i++;
         }
         foreach ($sets as $name => $value) {
-            $sql .= $value . "`$name`)";
+            $sql .= $value . "`$name`),";
         }
+        $sql = rtrim($sql, ",");
         $sql .= " where ";
         foreach ($keys as $key) {
             $sql .= " `$key` in (" . implode(',', $whereIn[$key]) . ') and ';
