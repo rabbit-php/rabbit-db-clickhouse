@@ -440,7 +440,7 @@ class Command extends \Rabbit\DB\Command
     public function insertFile(string $table, array $columns = null, string $file = '', string $format = 'CSV'): bool|string|array
     {
         if ($columns === null) {
-            $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
+            $columns = $this->db->getSchema()->getTableSchema($table)->getColumnNames();
         }
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
             ', ',
@@ -458,7 +458,7 @@ class Command extends \Rabbit\DB\Command
     public function batchInsertFiles(string $table, ?array $columns = null, array $files = [], string $format = 'CSV'): array
     {
         if ($columns === null) {
-            $columns = $this->db->getSchema()->getTableSchema($table)->columnNames;
+            $columns = $this->db->getSchema()->getTableSchema($table)->getColumnNames();
         }
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' (' . implode(
             ', ',
