@@ -167,8 +167,7 @@ class Command extends \Rabbit\DB\Command
 
             if (isset($cache, $cacheKey, $info)) {
                 !$cache->has($cacheKey) && $cache->set($cacheKey, serialize([$data]), $info[1]) && App::debug(
-                    'Saved query result in cache',
-                    'clickhouse'
+                    'Saved query result in cache'
                 );
             }
 

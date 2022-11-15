@@ -56,7 +56,7 @@ class ActiveRecord extends ActiveRecordActiveRecord
     public function insert(bool $runValidation = true, array $attributes = null): bool
     {
         if ($runValidation && !$this->validate($attributes)) {
-            App::info('Model not inserted due to validation error.', 'clickhouse');
+            App::info('Model not inserted due to validation error.');
             return false;
         }
 

@@ -99,7 +99,7 @@ class Connection extends \Rabbit\DB\Connection
     public function close(): void
     {
         if ($this->getIsActive()) {
-            App::warning('Closing DB connection: ' . $this->shortDsn, 'clickhouse');
+            App::warning('Closing DB connection: ' . $this->shortDsn);
         }
     }
 
