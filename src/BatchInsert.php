@@ -20,12 +20,12 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
         $tmp = [];
 
         if (empty($columns)) {
-            $columns = array_keys($this->columnSchemas);
-        }
-
-        foreach ($columns as $name) {
-            if ($this->columnSchemas[$name] ?? false) {
-                $tmp[] = $name;
+            $tmp = array_keys($this->columnSchemas);
+        } else {
+            foreach ($columns as $name) {
+                if ($this->columnSchemas[$name] ?? false) {
+                    $tmp[] = $name;
+                }
             }
         }
         $this->bindColumns($tmp);
