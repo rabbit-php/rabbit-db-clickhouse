@@ -146,7 +146,7 @@ class Schema extends \Rabbit\DB\Schema
         $column = $this->createColumnSchema();
         $column->name = $info['name'];
         $column->dbType = $info['type'];
-        $column->type = isset(self::$typeMap[$column->dbType]) ? self::$typeMap[$column->dbType] : self::TYPE_STRING;
+        $column->type = self::$typeMap[$column->dbType] ?? self::TYPE_STRING;
 
 
         if (preg_match('/^([\w ]+)(?:\(([^\)]+)\))?$/', $column->dbType, $matches)) {
