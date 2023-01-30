@@ -99,8 +99,6 @@ class Command extends \Rabbit\DB\Command
     public function execute(): int
     {
         $rawSql = $this->getRawSql();
-
-        $this->logQuery($rawSql, 'clickhouse');
         $client = $this->db->getConn();
         $response = $client->post($this->db->getQueryString(), ['data' => &$rawSql]);
         return $this->parseResponse($response) === true ? 1 : 0;
@@ -147,14 +145,14 @@ class Command extends \Rabbit\DB\Command
                         $result = unserialize($ret);
                         if (is_array($result) && isset($result[0])) {
                             $rawSql .= '; [Query result read from cache]';
-                            $this->logQuery($rawSql, 'clickhouse');
+                            $this->logQuery($rawSql);
                             return $this->prepareResult($result[0], $method, $fetchMode);
                         }
                     }
                 }
             }
 
-            $this->logQuery($rawSql, 'clickhouse');
+            $this->logQuery($rawSql);
 
             try {
                 $client = $this->db->getConn();
@@ -205,7 +203,7 @@ class Command extends \Rabbit\DB\Command
     {
         $rawSql = $this->getRawSql();
         $rawSql .= ' FORMAT CSV';
-        $this->logQuery($rawSql, 'clickhouse');
+        $this->logQuery($rawSql);
         if ($path === null) {
             $client = $this->db->getConn();
             try {
@@ -422,7 +420,7 @@ class Command extends \Rabbit\DB\Command
     public function insertJsonRows(string $table, string &$rows): bool|string|array
     {
         $sql = 'INSERT INTO ' . $this->db->getSchema()->quoteTableName($table) . ' FORMAT JSONEachRow';
-        $this->logQuery($sql, 'clickhouse');
+        $this->logQuery($sql);
         $client = $this->db->getConn();
         $response = $client->post(
             $this->db->getQueryString(['query' => $sql]),
@@ -443,7 +441,7 @@ class Command extends \Rabbit\DB\Command
             $columns
         ) . ')' : '') . ' FORMAT ' . $format;
 
-        $this->logQuery($sql, 'clickhouse');
+        $this->logQuery($sql);
         $client = $this->db->getConn();
         $response = $client->post($this->db->getQueryString([
             'query' => $sql
@@ -458,7 +456,7 @@ class Command extends \Rabbit\DB\Command
             $columns
         ) . ')' : '') . ' FORMAT ' . $format;
 
-        $this->logQuery($sql, 'clickhouse');
+        $this->logQuery($sql);
         $responses = [];
         $client = $this->db->getConn();
         foreach ($files as $file) {
