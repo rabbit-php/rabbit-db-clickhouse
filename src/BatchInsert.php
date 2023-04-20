@@ -8,7 +8,7 @@ use Rabbit\Base\Helper\StringHelper;
 
 class BatchInsert extends \Rabbit\DB\BatchInsert
 {
-    public function addColumns(array $columns = []): bool
+    public function addColumns(array $columns = [], array $exclude = []): bool
     {
         if ($this->columns) {
             return false;
@@ -28,6 +28,7 @@ class BatchInsert extends \Rabbit\DB\BatchInsert
                 }
             }
         }
+        $tmp = array_filter($tmp, fn (string $column) => !in_array($column, $exclude));
         $this->bindColumns($tmp);
         $this->columns = $tmp;
         return true;
